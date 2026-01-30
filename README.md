@@ -52,7 +52,7 @@ const sdk = new SkillzMarket();
 // With wallet (can call paid skills)
 const sdk = new SkillzMarket({
   wallet: '0x...private-key',
-  apiUrl: 'https://api.skillzmarket.com', // optional
+  apiUrl: 'https://api.skillz.market', // optional
   network: 'eip155:8453', // Base mainnet (default)
 });
 ```
@@ -121,7 +121,7 @@ Payments use the [x402 protocol](https://x402.org):
 ```typescript
 interface SkillzMarketOptions {
   wallet?: WalletConfig;        // Private key or viem account
-  apiUrl?: string;              // API URL (default: https://api.skillzmarket.com)
+  apiUrl?: string;              // API URL (default: https://api.skillz.market)
   network?: `${string}:${string}`; // Chain (default: eip155:8453)
 }
 ```
