@@ -30,43 +30,7 @@ export function buildProtectedRoutes(
 }
 
 /**
- * Create dev mode middleware that can bypass payment for testing.
- */
-export function createDevPaymentMiddleware(
-  protectedRoutes: ProtectedRoutes
-): MiddlewareHandler {
-  return async (c, next) => {
-    const skipPayment = c.req.header('X-Skip-Payment');
-    if (skipPayment === 'true' || skipPayment === '1') {
-      await next();
-      return;
-    }
-
-    // Without bypass header, return 402 with payment info
-    const path = c.req.path;
-    const method = c.req.method;
-    const routeKey = `${method} ${path}` as keyof typeof protectedRoutes;
-    const route = protectedRoutes[routeKey];
-
-    if (route) {
-      return c.json(
-        {
-          error: 'Payment Required',
-          paymentInfo: route.accepts,
-          message: 'In dev mode, set X-Skip-Payment: true header to bypass',
-        },
-        402
-      );
-    }
-
-    await next();
-    return;
-  };
-}
-
-/**
  * Create production x402 payment middleware.
- * Dynamically imports x402 packages to avoid issues in dev mode.
  */
 export async function createProductionPaymentMiddleware(
   protectedRoutes: ProtectedRoutes,
@@ -90,13 +54,13 @@ export async function createProductionPaymentMiddleware(
 }
 
 /**
- * Create the appropriate payment middleware based on mode.
+ * Create x402 payment middleware.
+ * Always uses production x402 middleware for security.
  */
 export async function createPaymentMiddleware(
   skills: SkillsMap,
   walletAddress: string,
   options: {
-    dev: boolean;
     network: `${string}:${string}`;
     facilitatorUrl: string;
     appName: string;
@@ -107,10 +71,6 @@ export async function createPaymentMiddleware(
     walletAddress,
     options.network
   );
-
-  if (options.dev) {
-    return createDevPaymentMiddleware(protectedRoutes);
-  }
 
   return createProductionPaymentMiddleware(
     protectedRoutes,

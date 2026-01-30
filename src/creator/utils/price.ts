@@ -18,20 +18,24 @@ export function parsePrice(price: string): ParsedPrice {
   // Format: $0.001
   if (trimmed.startsWith('$')) {
     const amount = trimmed.slice(1).trim();
+    // Use strict decimal regex to prevent malformed values like "1.2.3"
+    if (!/^\d+(?:\.\d+)?$/.test(amount)) {
+      throw new Error(`Invalid price amount: "${amount}" is not a valid decimal number`);
+    }
     validateAmount(amount);
     return { amount, currency: 'USDC' };
   }
 
-  // Format: 0.005 USDC
-  const usdcMatch = trimmed.match(/^([\d.]+)\s*USDC$/i);
+  // Format: 0.005 USDC (with proper decimal validation)
+  const usdcMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*USDC$/i);
   if (usdcMatch?.[1]) {
     const amount = usdcMatch[1];
     validateAmount(amount);
     return { amount, currency: 'USDC' };
   }
 
-  // Format: just a number (assume USDC)
-  if (/^[\d.]+$/.test(trimmed)) {
+  // Format: just a number (assume USDC) with proper decimal validation
+  if (/^\d+(?:\.\d+)?$/.test(trimmed)) {
     validateAmount(trimmed);
     return { amount: trimmed, currency: 'USDC' };
   }

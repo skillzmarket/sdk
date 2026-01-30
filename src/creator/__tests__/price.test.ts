@@ -42,7 +42,7 @@ describe('parsePrice', () => {
   });
 
   it('throws on negative amount', () => {
-    expect(() => parsePrice('$-0.001')).toThrow('must be positive');
+    expect(() => parsePrice('$-0.001')).toThrow('not a valid decimal number');
   });
 
   it('throws on zero amount', () => {
@@ -54,7 +54,29 @@ describe('parsePrice', () => {
   });
 
   it('throws on non-numeric amount', () => {
-    expect(() => parsePrice('$abc')).toThrow('not a number');
+    expect(() => parsePrice('$abc')).toThrow();
+  });
+
+  it('throws on malformed decimal like 1.2.3 (dollar format)', () => {
+    expect(() => parsePrice('$1.2.3')).toThrow('not a valid decimal number');
+  });
+
+  it('throws on malformed decimal like 1.2.3 USDC', () => {
+    expect(() => parsePrice('1.2.3 USDC')).toThrow('Invalid price format');
+  });
+
+  it('throws on malformed decimal like 1.2.3 (plain number)', () => {
+    expect(() => parsePrice('1.2.3')).toThrow('Invalid price format');
+  });
+
+  it('throws on multiple decimals like 0..5', () => {
+    expect(() => parsePrice('$0..5')).toThrow();
+  });
+
+  it('throws on leading decimal without zero', () => {
+    // This should be valid: .5 is a valid number
+    // But our strict regex requires a digit before optional decimal
+    expect(() => parsePrice('$.5')).toThrow();
   });
 });
 

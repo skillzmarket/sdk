@@ -52,7 +52,7 @@ const sdk = new SkillzMarket();
 // With wallet (can call paid skills)
 const sdk = new SkillzMarket({
   wallet: '0x...private-key',
-  apiUrl: 'https://api.skillz.market', // optional
+  apiUrl: 'https://api.skillz.market', // optional, must use HTTPS
   network: 'eip155:8453', // Base mainnet (default)
 });
 ```
@@ -113,6 +113,22 @@ Payments use the [x402 protocol](https://x402.org):
 **Requirements:**
 - Wallet with USDC on Base mainnet
 - Private key or viem account
+
+## Security Considerations
+
+### HTTPS Required
+
+All API URLs must use HTTPS to ensure secure communication. The SDK will reject HTTP URLs (except for localhost during development).
+
+### Wallet Security
+
+- Never hardcode private keys in your source code
+- Use environment variables or secure key management solutions
+- Consider using hardware wallets for production deployments
+
+### Error Handling
+
+In production (`NODE_ENV=production`), error messages from skill execution are masked to prevent information disclosure. Detailed error information is only available in development environments.
 
 ## API Reference
 

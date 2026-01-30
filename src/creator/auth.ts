@@ -11,6 +11,18 @@ export interface AuthResult {
 }
 
 /**
+ * Validate that a URL uses HTTPS protocol.
+ * Allows localhost for development purposes.
+ */
+function validateHttpsUrl(url: string, paramName: string): void {
+  const parsed = new URL(url);
+  const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  if (!isLocalhost && parsed.protocol !== 'https:') {
+    throw new Error(`${paramName} must use HTTPS protocol for security`);
+  }
+}
+
+/**
  * Authenticate with the Skillz Market API using a wallet.
  *
  * This performs a challenge-response authentication flow:
@@ -27,6 +39,9 @@ export async function authenticate(
   options: AuthenticateOptions = {}
 ): Promise<AuthResult> {
   const apiUrl = options.apiUrl ?? DEFAULT_API_URL;
+
+  // Validate HTTPS for API URL (allow localhost for development)
+  validateHttpsUrl(apiUrl, 'apiUrl');
 
   // Step 1: Request challenge message
   const challengeResponse = await fetch(`${apiUrl}/auth/challenge`, {

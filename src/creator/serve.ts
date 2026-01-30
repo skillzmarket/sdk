@@ -11,6 +11,7 @@ const DEFAULT_PORT = 3002;
 const DEFAULT_NETWORK = 'eip155:8453' as const;
 const DEFAULT_FACILITATOR_URL = 'https://x402.dexter.cash';
 const DEFAULT_APP_NAME = 'Skillz Market Skill';
+const DEFAULT_API_URL = 'https://api.skillz.market';
 
 /**
  * Start a server with the provided skills.
@@ -35,13 +36,14 @@ export async function serve(
   const {
     port = DEFAULT_PORT,
     wallet,
-    dev = process.env.NODE_ENV !== 'production',
     network = DEFAULT_NETWORK,
     facilitatorUrl = DEFAULT_FACILITATOR_URL,
     appName = DEFAULT_APP_NAME,
     onCall,
     onError,
     register: registerOpts,
+    trackCalls = true,
+    apiUrl = DEFAULT_API_URL,
   } = options;
 
   // Validate skills
@@ -61,7 +63,6 @@ export async function serve(
 
   // Create and apply payment middleware
   const paymentMiddleware = await createPaymentMiddleware(skills, walletAddress, {
-    dev,
     network,
     facilitatorUrl,
     appName,
@@ -73,7 +74,6 @@ export async function serve(
     c.json({
       status: 'ok',
       skills: skillNames,
-      dev,
     })
   );
 
@@ -99,6 +99,16 @@ export async function serve(
 
       try {
         const result = await definition.handler(input);
+
+        // Track call to Skillz Market analytics (non-blocking)
+        if (trackCalls) {
+          fetch(`${apiUrl}/analytics/call`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ skillSlug: name }),
+          }).catch(() => {}); // Silently ignore tracking errors
+        }
+
         return c.json({
           success: true,
           result,
@@ -116,10 +126,15 @@ export async function serve(
           }
         }
 
+        // Mask error details in production to prevent information disclosure
+        const errorMsg = process.env.NODE_ENV === 'production'
+          ? 'Internal server error'
+          : err.message;
+
         return c.json(
           {
             success: false,
-            error: err.message,
+            error: errorMsg,
             timestamp: new Date().toISOString(),
           },
           500
@@ -143,7 +158,6 @@ export async function serve(
       console.log(`  URL:      http://localhost:${info.port}`);
       console.log(`  Network:  ${network}`);
       console.log(`  Wallet:   ${walletAddress}`);
-      console.log(`  Mode:     ${dev ? 'Development' : 'Production'}`);
       console.log('');
       console.log('  Skills:');
       for (const [name, definition] of Object.entries(skills)) {
@@ -155,10 +169,6 @@ export async function serve(
         }
       }
       console.log('');
-      if (dev) {
-        console.log('  Dev mode: Set X-Skip-Payment: true header to bypass payment');
-        console.log('');
-      }
       console.log('='.repeat(50));
       console.log('');
 

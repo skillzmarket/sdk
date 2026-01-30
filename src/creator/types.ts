@@ -127,11 +127,6 @@ export interface ServeOptions {
    */
   wallet?: Hex;
   /**
-   * Enable dev mode for testing without real payments.
-   * Default: NODE_ENV !== 'production'
-   */
-  dev?: boolean;
-  /**
    * Network identifier for x402 payments.
    * Default: 'eip155:8453' (Base mainnet)
    */
@@ -159,6 +154,16 @@ export interface ServeOptions {
    * If provided, skills will be registered after the server starts.
    */
   register?: RegistrationOptions;
+  /**
+   * Whether to track skill calls to Skillz Market analytics.
+   * Default: true
+   */
+  trackCalls?: boolean;
+  /**
+   * API URL for analytics tracking.
+   * Default: 'https://api.skillz.market'
+   */
+  apiUrl?: string;
 }
 
 /**

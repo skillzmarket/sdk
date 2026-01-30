@@ -4,6 +4,18 @@ import type { Skill, SearchFilters, SkillzMarketOptions, WalletConfig } from './
 
 const DEFAULT_API_URL = 'https://api.skillz.market';
 
+/**
+ * Validate that a URL uses HTTPS protocol.
+ * Allows localhost for development purposes.
+ */
+function validateHttpsUrl(url: string, paramName: string): void {
+  const parsed = new URL(url);
+  const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  if (!isLocalhost && parsed.protocol !== 'https:') {
+    throw new Error(`${paramName} must use HTTPS protocol for security`);
+  }
+}
+
 export class SkillzMarket {
   private discovery: DiscoveryClient;
   private apiUrl: string;
@@ -14,6 +26,10 @@ export class SkillzMarket {
 
   constructor(options: SkillzMarketOptions = {}) {
     this.apiUrl = options.apiUrl || DEFAULT_API_URL;
+
+    // Validate HTTPS for API URL (allow localhost for development)
+    validateHttpsUrl(this.apiUrl, 'apiUrl');
+
     this.discovery = new DiscoveryClient(this.apiUrl);
 
     if (options.wallet) {

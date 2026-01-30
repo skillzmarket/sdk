@@ -11,9 +11,18 @@ describe('SkillzMarket', () => {
     expect(client).toBeDefined();
   });
 
-  it('should initialize with custom API URL', () => {
-    const client = new SkillzMarket({ apiUrl: 'http://custom.api' });
+  it('should initialize with custom HTTPS API URL', () => {
+    const client = new SkillzMarket({ apiUrl: 'https://custom.api' });
     expect(client).toBeDefined();
+  });
+
+  it('should allow localhost API URL', () => {
+    const client = new SkillzMarket({ apiUrl: 'http://localhost:3000' });
+    expect(client).toBeDefined();
+  });
+
+  it('should reject HTTP API URL for non-localhost', () => {
+    expect(() => new SkillzMarket({ apiUrl: 'http://custom.api' })).toThrow('must use HTTPS');
   });
 
   it('should throw when calling skill without wallet', async () => {
