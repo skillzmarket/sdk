@@ -1,45 +1,55 @@
 # @skillzmarket/sdk
 
-SDK for discovering and calling paid AI skills with automatic cryptocurrency payments.
+[![npm version](https://img.shields.io/npm/v/@skillzmarket/sdk.svg)](https://www.npmjs.com/package/@skillzmarket/sdk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+SDK for discovering and calling paid AI skills with automatic x402 crypto payments.
+
+## Features
+
+- **Discover skills** - Search and explore the Skillz Market registry
+- **Automatic payments** - x402 protocol handles USDC payments seamlessly
+- **Create skills** - Monetize your AI services with zero crypto knowledge
+- **Type-safe** - Full TypeScript support with comprehensive types
+- **Base network** - Fast, low-cost transactions on Base mainnet
 
 ## Installation
 
 ```bash
 npm install @skillzmarket/sdk viem
+# or
+pnpm add @skillzmarket/sdk viem
 ```
 
 ## Quick Start
 
+### Consumer: Call Paid Skills
+
 ```typescript
 import { SkillzMarket } from '@skillzmarket/sdk';
-import { privateKeyToAccount } from 'viem/accounts';
 
-// Initialize with your wallet (for payments)
-const sdk = new SkillzMarket({
-  wallet: '0x...your-private-key', // or privateKeyToAccount('0x...')
-});
-
-// Search for skills
-const skills = await sdk.search('web scraper');
-
-// Get skill details
-const skill = await sdk.info('web-scraper');
-console.log(`${skill.name} - ${skill.price} ${skill.currency}`);
-
-// Call a skill (payment handled automatically)
-const result = await sdk.call('web-scraper', {
-  url: 'https://example.com'
-});
+const market = new SkillzMarket({ wallet: '0x...' });
+const result = await market.call('text-to-image', { prompt: 'A sunset' });
 ```
 
-## Features
+### Creator: Monetize Your Skills
 
-- **Discover skills** - Search and browse the marketplace
-- **Automatic payments** - x402 protocol handles USDC payments on Base
-- **Type-safe** - Full TypeScript support
-- **Wallet auth** - Sign-in with Ethereum wallet
+```typescript
+import { skill, serve } from '@skillzmarket/sdk/creator';
 
-## Usage
+const echo = skill({ price: '$0.001' }, async (input) => ({ echo: input }));
+serve({ echo }); // Run: SKILLZ_WALLET_KEY=0x... npx tsx index.ts
+```
+
+## Documentation
+
+📚 **[Full Documentation](https://docs.skillz.market)** - Complete guides, API reference, and examples.
+
+---
+
+## Consumer API
+
+The consumer API lets you discover and call paid skills.
 
 ### Initialize
 
@@ -47,60 +57,52 @@ const result = await sdk.call('web-scraper', {
 import { SkillzMarket } from '@skillzmarket/sdk';
 
 // Without wallet (discovery only)
-const sdk = new SkillzMarket();
+const market = new SkillzMarket();
 
 // With wallet (can call paid skills)
-const sdk = new SkillzMarket({
+const market = new SkillzMarket({
   wallet: '0x...private-key',
-  apiUrl: 'https://api.skillz.market', // optional, must use HTTPS
+  apiUrl: 'https://api.skillz.market', // optional
   network: 'eip155:8453', // Base mainnet (default)
 });
 ```
 
-### Discovery
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `search(query, filters?)` | Search for skills by keyword |
+| `info(slug)` | Get detailed skill information |
+| `call(slug, input)` | Call a skill with automatic payment |
+| `getCreator(address)` | Get creator profile |
+| `getReviews(slug)` | Get reviews for a skill |
+| `authenticate()` | Auth with wallet signature |
+| `feedback(slug, score, comment?)` | Submit a review |
+
+### Example
 
 ```typescript
-// Search skills
-const skills = await sdk.search('image generation');
+import { SkillzMarket } from '@skillzmarket/sdk';
 
-// Get skill details
-const skill = await sdk.info('dall-e-generator');
-
-// Get creator profile
-const creator = await sdk.getCreator('0x...');
-
-// Get reviews
-const reviews = await sdk.getReviews('dall-e-generator');
-```
-
-### Calling Skills
-
-```typescript
-// Call a skill - payment is automatic
-const result = await sdk.call('web-scraper', {
-  url: 'https://example.com'
+const market = new SkillzMarket({
+  wallet: process.env.WALLET_KEY,
 });
 
-// The SDK:
-// 1. Fetches skill info (endpoint, price)
-// 2. Calls the endpoint
-// 3. Handles 402 Payment Required
-// 4. Signs USDC transfer on Base
-// 5. Retries with payment proof
-// 6. Returns the result
-```
+// Discover skills
+const skills = await market.search('image generation');
+const skill = await market.info('text-to-image');
 
-### Authentication & Reviews
-
-```typescript
-// Authenticate (for submitting reviews)
-await sdk.authenticate();
+// Call with automatic payment
+const result = await market.call('text-to-image', {
+  prompt: 'A cyberpunk cityscape at night',
+  style: 'photorealistic',
+});
 
 // Submit feedback
-await sdk.feedback('web-scraper', 85, 'Great results!');
+await market.feedback('text-to-image', 90, 'Amazing results!');
 ```
 
-## Payment Flow
+### Payment Flow
 
 Payments use the [x402 protocol](https://x402.org):
 
@@ -110,65 +112,175 @@ Payments use the [x402 protocol](https://x402.org):
 4. SDK retries request with payment proof
 5. Skill executes and returns result
 
-**Requirements:**
-- Wallet with USDC on Base mainnet
-- Private key or viem account
+---
+
+## Creator API
+
+The creator API lets you monetize your AI skills.
+
+### Functions
+
+| Function | Description |
+|----------|-------------|
+| `skill(options, handler)` | Define a monetized skill |
+| `serve(skills, options?)` | Start the skill server |
+| `register(skills, options)` | Register skills with marketplace |
+
+### Example
+
+```typescript
+import { skill, serve } from '@skillzmarket/sdk/creator';
+
+// Define skills
+const summarize = skill({
+  price: '$0.005',
+  description: 'Summarize text using AI',
+  inputSchema: {
+    type: 'object',
+    properties: { text: { type: 'string' } },
+    required: ['text'],
+  },
+}, async ({ text }) => {
+  // Your AI logic here
+  return { summary: text.slice(0, 100) + '...' };
+});
+
+const translate = skill({
+  price: '$0.003',
+  description: 'Translate text between languages',
+}, async ({ text, targetLang }) => {
+  return { translated: `[${targetLang}] ${text}` };
+});
+
+// Serve multiple skills
+serve({ summarize, translate }, {
+  port: 3002,
+  register: {
+    endpoint: 'https://your-server.com',
+    enabled: true,
+  },
+});
+```
+
+### Price Formats
+
+Creators can specify prices in multiple formats:
+
+| Format | Example | Result |
+|--------|---------|--------|
+| Dollar sign | `'$0.001'` | 0.001 USDC |
+| With currency | `'0.005 USDC'` | 0.005 USDC |
+| Plain number | `'0.01'` | 0.01 USDC |
+
+### Skill Options
+
+```typescript
+interface SkillOptions {
+  price: string;           // Required: price per call
+  description?: string;    // What the skill does
+  timeout?: number;        // Max execution time (ms, default: 60000)
+  inputSchema?: JsonSchema;  // JSON Schema for input validation
+  outputSchema?: JsonSchema; // JSON Schema for output format
+}
+```
+
+### Serve Options
+
+```typescript
+interface ServeOptions {
+  port?: number;           // Port to listen on (default: 3002)
+  wallet?: Hex;            // Private key (or use SKILLZ_WALLET_KEY env)
+  network?: string;        // Network (default: 'eip155:8453')
+  register?: {
+    endpoint: string;      // Your public server URL
+    enabled?: boolean;     // Enable auto-registration
+    onError?: 'throw' | 'warn' | 'silent';
+  };
+  onCall?: (name, input) => void;   // Callback for skill calls
+  onError?: (name, error) => void;  // Callback for errors
+}
+```
+
+---
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `SKILLZ_WALLET_KEY` | Private key for payments (Creator) | Yes* |
+
+*Required for `serve()` if not passed in options.
 
 ## Security Considerations
 
 ### HTTPS Required
 
-All API URLs must use HTTPS to ensure secure communication. The SDK will reject HTTP URLs (except for localhost during development).
+All API URLs must use HTTPS. The SDK rejects HTTP URLs (except localhost for development).
 
 ### Wallet Security
 
-- Never hardcode private keys in your source code
-- Use environment variables or secure key management solutions
-- Consider using hardware wallets for production deployments
+- Never hardcode private keys in source code
+- Use environment variables or secure key management
+- Consider hardware wallets for production
 
 ### Error Handling
 
-In production (`NODE_ENV=production`), error messages from skill execution are masked to prevent information disclosure. Detailed error information is only available in development environments.
+In production (`NODE_ENV=production`), error messages are masked to prevent information disclosure.
 
-## API Reference
+---
 
-### `SkillzMarket`
+## Types
 
-```typescript
-interface SkillzMarketOptions {
-  wallet?: WalletConfig;        // Private key or viem account
-  apiUrl?: string;              // API URL (default: https://api.skillz.market)
-  network?: `${string}:${string}`; // Chain (default: eip155:8453)
-}
-```
-
-### Methods
-
-| Method | Description |
-|--------|-------------|
-| `search(query, filters?)` | Search skills |
-| `info(slug)` | Get skill details |
-| `call(slug, input)` | Call a skill (with payment) |
-| `getCreator(address)` | Get creator profile |
-| `getReviews(slug)` | Get skill reviews |
-| `authenticate()` | Auth with wallet signature |
-| `feedback(slug, score, comment?)` | Submit review |
-
-### Types
+### Consumer Types
 
 ```typescript
 interface Skill {
+  id: string;
   slug: string;
   name: string;
-  description: string;
+  description: string | null;
   price: string;
   currency: string;
   endpoint: string;
+  inputSchema: Record<string, unknown> | null;
+  outputSchema: Record<string, unknown> | null;
   paymentAddress: string;
   isActive: boolean;
+  creatorId: string;
+}
+
+interface SearchFilters {
+  category?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  creator?: string;
+}
+
+type WalletConfig = PrivateKeyAccount | Hex;
+```
+
+### Creator Types
+
+```typescript
+interface SkillDefinition<TInput, TOutput> {
+  options: SkillOptions;
+  handler: SkillHandler<TInput, TOutput>;
+  parsedPrice: ParsedPrice;
+}
+
+interface ParsedPrice {
+  amount: string;
+  currency: 'USDC';
 }
 ```
 
+---
+
+## Requirements
+
+- Node.js >= 18.0.0
+- pnpm >= 8.0.0 (recommended)
+
 ## License
 
-MIT
+MIT © [Skillz Market](https://skillz.market)
