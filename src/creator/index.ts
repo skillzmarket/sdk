@@ -20,7 +20,8 @@
 export { skill } from './skill.js';
 export { serve } from './serve.js';
 export { register } from './register.js';
-export { authenticate } from './auth.js';
+export { authenticate, refreshAccessToken } from './auth.js';
+export type { AuthResult, RefreshResult } from './auth.js';
 
 // Re-export types for advanced usage
 export type {

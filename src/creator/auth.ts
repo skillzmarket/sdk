@@ -8,6 +8,8 @@ export interface AuthenticateOptions {
 
 export interface AuthResult {
   token: string;
+  refreshToken?: string;
+  expiresIn?: number;
 }
 
 /**
@@ -85,9 +87,61 @@ export async function authenticate(
     throw new Error(`Failed to authenticate: ${error}`);
   }
 
-  const { token } = (await authResponse.json()) as { token: string };
+  const authResult = (await authResponse.json()) as {
+    token: string;
+    refreshToken?: string;
+    expiresIn?: number;
+  };
 
-  return { token };
+  return {
+    token: authResult.token,
+    refreshToken: authResult.refreshToken,
+    expiresIn: authResult.expiresIn,
+  };
+}
+
+export interface RefreshOptions {
+  apiUrl?: string;
+}
+
+export interface RefreshResult {
+  token: string;
+  expiresIn: number;
+}
+
+/**
+ * Refresh an access token using a refresh token.
+ *
+ * Call this before the access token expires (typically 15 minutes).
+ * The refresh token is valid for 7 days.
+ *
+ * @param refreshToken - Refresh token from authenticate()
+ * @param options - Refresh options
+ * @returns New access token and expiration time
+ */
+export async function refreshAccessToken(
+  refreshToken: string,
+  options: RefreshOptions = {}
+): Promise<RefreshResult> {
+  const apiUrl = options.apiUrl ?? DEFAULT_API_URL;
+
+  validateHttpsUrl(apiUrl, 'apiUrl');
+
+  const response = await fetch(`${apiUrl}/auth/refresh`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to refresh token: ${error}`);
+  }
+
+  const result = (await response.json()) as { token: string; expiresIn: number };
+  return result;
 }
 
 /**
