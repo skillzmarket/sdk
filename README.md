@@ -47,6 +47,33 @@ serve({ echo }); // Run: SKILLZ_WALLET_KEY=0x... npx tsx index.ts
 
 ---
 
+## AI Assistant Integration
+
+For AI assistants like Claude, use the MCP package:
+
+```json
+{
+  "mcpServers": {
+    "skillzmarket": {
+      "command": "npx",
+      "args": ["@skillzmarket/mcp"],
+      "env": { "SKILLZ_PRIVATE_KEY": "0x..." }
+    }
+  }
+}
+```
+
+| Tool | Description |
+|------|-------------|
+| `skillz_search` | Search for skills |
+| `skillz_info` | Get skill details |
+| `skillz_call` | Call with payment |
+| `skillz_reviews` | Get reviews |
+
+See [@skillzmarket/mcp](../mcp) for details.
+
+---
+
 ## Consumer API
 
 The consumer API lets you discover and call paid skills.
