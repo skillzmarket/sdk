@@ -1,23 +1,21 @@
-import type { PrivateKeyAccount } from 'viem/accounts';
 import type { Address } from 'viem';
 import type { SkillsMap, RegistrationResult, RegistrationOptions } from './types.js';
-import { authenticate, authenticatedFetch } from './auth.js';
 
 const DEFAULT_API_URL = 'https://api.skillz.market';
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 
 export interface RegisterOptions {
-  account: PrivateKeyAccount;
+  /** API key for authentication */
+  apiKey: string;
+  /** Payment address to receive skill payments */
+  paymentAddress: Address;
+  /** Public endpoint URL where skills are accessible */
   endpoint: string;
+  /** API URL for the Skillz Market registry */
   apiUrl?: string;
+  /** Error handling mode */
   onError?: 'throw' | 'warn' | 'silent';
-  /**
-   * Optional expected payment address for verification.
-   * If provided, registration will fail if the account address
-   * doesn't match this expected address.
-   */
-  expectedPaymentAddress?: Address;
 }
 
 interface SkillPayload {
@@ -45,18 +43,17 @@ function getBackoffDelay(attempt: number): number {
 }
 
 /**
- * Register skills with the Skillz Market registry.
+ * Register skills with the Skillz Market registry using API key authentication.
  *
  * @example
  * ```typescript
  * import { skill, register } from '@skillzmarket/sdk/creator';
- * import { privateKeyToAccount } from 'viem/accounts';
  *
  * const echo = skill({ price: '$0.001' }, async (input) => ({ echo: input }));
  *
- * const account = privateKeyToAccount('0x...');
  * const results = await register({ echo }, {
- *   account,
+ *   apiKey: 'sk_abc123...',  // or process.env.SKILLZ_API_KEY
+ *   paymentAddress: '0x4554A88d9e4D1bef5338F65A3Cd335C6A27E5368',
  *   endpoint: 'https://my-skills.example.com',
  * });
  * ```
@@ -69,35 +66,24 @@ export async function register(
   skills: SkillsMap,
   options: RegisterOptions
 ): Promise<RegistrationResult[]> {
-  const { account, endpoint, apiUrl = DEFAULT_API_URL, onError = 'warn', expectedPaymentAddress } = options;
+  const { apiKey, paymentAddress, endpoint, apiUrl = DEFAULT_API_URL, onError = 'warn' } = options;
 
   const skillNames = Object.keys(skills);
   if (skillNames.length === 0) {
     return [];
   }
 
-  // Verify payment address matches if expected address is provided
-  if (expectedPaymentAddress) {
-    if (account.address.toLowerCase() !== expectedPaymentAddress.toLowerCase()) {
-      const message = `Payment address mismatch: registration account (${account.address}) ` +
-        `does not match expected payment address (${expectedPaymentAddress}). ` +
-        `Ensure the same wallet is used for registration and serving.`;
-      return handleRegistrationError(message, skillNames, onError);
-    }
+  if (!apiKey) {
+    const message =
+      'API key required for registration. Either:\n' +
+      '1. Pass `apiKey` option to serve()\n' +
+      '2. Set SKILLZ_API_KEY environment variable\n\n' +
+      'Get an API key from https://skillz.market/dashboard';
+    return handleRegistrationError(message, skillNames, onError);
   }
 
   // Normalize endpoint (remove trailing slash)
   const normalizedEndpoint = endpoint.replace(/\/$/, '');
-
-  // Authenticate with the API
-  let token: string;
-  try {
-    const authResult = await authenticate(account, { apiUrl });
-    token = authResult.token;
-  } catch (error) {
-    const message = `Failed to authenticate for registration: ${error instanceof Error ? error.message : String(error)}`;
-    return handleRegistrationError(message, skillNames, onError);
-  }
 
   // Register each skill
   const results: RegistrationResult[] = [];
@@ -109,13 +95,13 @@ export async function register(
       name,
       endpoint: skillEndpoint,
       price: definition.parsedPrice.amount,
-      paymentAddress: account.address,
+      paymentAddress,
       description: definition.options.description,
       inputSchema: definition.options.inputSchema,
       outputSchema: definition.options.outputSchema,
     };
 
-    const result = await registerSkillWithRetry(name, payload, token, apiUrl, onError);
+    const result = await registerSkillWithRetry(name, payload, apiKey, apiUrl, onError);
     results.push(result);
   }
 
@@ -128,7 +114,7 @@ export async function register(
 async function registerSkillWithRetry(
   name: string,
   payload: SkillPayload,
-  token: string,
+  apiKey: string,
   apiUrl: string,
   onError: 'throw' | 'warn' | 'silent'
 ): Promise<RegistrationResult> {
@@ -136,8 +122,12 @@ async function registerSkillWithRetry(
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const response = await authenticatedFetch(`${apiUrl}/skills`, token, {
+      const response = await fetch(`${apiUrl}/skills`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -237,10 +227,12 @@ function handleRegistrationError(
  */
 export function buildRegisterOptions(
   registerOpts: RegistrationOptions,
-  account: PrivateKeyAccount
+  apiKey: string,
+  paymentAddress: Address
 ): RegisterOptions {
   return {
-    account,
+    apiKey,
+    paymentAddress,
     endpoint: registerOpts.endpoint,
     apiUrl: registerOpts.apiUrl,
     onError: registerOpts.onError,

@@ -1,5 +1,3 @@
-import type { Hex } from 'viem';
-
 /**
  * JSON Schema type for describing skill input/output
  */
@@ -122,10 +120,16 @@ export interface ServeOptions {
    */
   port?: number;
   /**
-   * Wallet private key for receiving payments.
-   * Falls back to SKILLZ_WALLET_KEY environment variable.
+   * Wallet address for receiving payments.
+   * Accepts either a 42-char address or a 66-char private key (derives address).
+   * Falls back to SKILLZ_WALLET_ADDRESS or SKILLZ_WALLET_KEY environment variables.
    */
-  wallet?: Hex;
+  wallet?: string;
+  /**
+   * API key for registration. Get one from the Skillz Market dashboard.
+   * Falls back to SKILLZ_API_KEY environment variable.
+   */
+  apiKey?: string;
   /**
    * Network identifier for x402 payments.
    * Default: 'eip155:8453' (Base mainnet)

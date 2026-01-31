@@ -21,6 +21,7 @@ export { skill } from './skill.js';
 export { serve } from './serve.js';
 export { register } from './register.js';
 export type { RegisterOptions } from './register.js';
+export { init, checkConfig } from './init.js';
 export { authenticate, refreshAccessToken } from './auth.js';
 export type { AuthResult, RefreshResult } from './auth.js';
 
@@ -39,5 +40,5 @@ export type {
 
 // Re-export utilities for advanced usage
 export { parsePrice, formatPriceForX402 } from './utils/price.js';
-export { resolveWallet, maskPrivateKey, verifyWalletMatch } from './utils/wallet.js';
+export { resolveWalletToAddress, resolveWallet, maskPrivateKey, verifyWalletMatch } from './utils/wallet.js';
 export type { WalletConfig } from './utils/wallet.js';

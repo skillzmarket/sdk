@@ -18,6 +18,9 @@
       "default": "./dist/creator/index.js"
     }
   },
+  "bin": {
+    "skillz-init": "./dist/bin/init.js"
+  },
   "files": [
     "dist",
     "README.md",
@@ -64,6 +67,7 @@
     "@x402/fetch": "^2.2.0",
     "@x402/hono": "^2.2.0",
     "hono": "^4.0.0",
+    "user": "^0.0.0",
     "viem": "^2.0.0"
   },
   "peerDependencies": {

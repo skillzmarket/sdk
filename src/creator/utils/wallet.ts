@@ -8,12 +8,62 @@ import type { PrivateKeyAccount } from 'viem/accounts';
 export type WalletConfig = Hex | PrivateKeyAccount;
 
 /**
+ * Resolve wallet input to an address.
+ * Accepts either a 42-char address or 66-char private key.
+ *
+ * Priority:
+ * 1. Explicit wallet option
+ * 2. SKILLZ_WALLET_ADDRESS environment variable
+ * 3. SKILLZ_WALLET_KEY environment variable (derives address)
+ *
+ * @param wallet - Optional explicit wallet address or private key
+ * @returns The wallet address
+ * @throws Error if no wallet is configured or invalid format
+ */
+export function resolveWalletToAddress(wallet?: string): Address {
+  const input = wallet ?? process.env.SKILLZ_WALLET_ADDRESS ?? process.env.SKILLZ_WALLET_KEY;
+
+  if (!input) {
+    throw new Error(
+      'No wallet configured. Either:\n' +
+        '1. Pass `wallet` option with an address: serve({ skills }, { wallet: "0x..." })\n' +
+        '2. Set SKILLZ_WALLET_ADDRESS environment variable\n\n' +
+        'The wallet address receives payments from skill calls.'
+    );
+  }
+
+  if (!input.startsWith('0x')) {
+    throw new Error('Invalid wallet format. Must start with "0x"');
+  }
+
+  // 42 chars = address (0x + 40 hex chars)
+  if (input.length === 42) {
+    return input as Address;
+  }
+
+  // 66 chars = private key (0x + 64 hex chars) - derive address
+  if (input.length === 66) {
+    return privateKeyToAccount(input as Hex).address;
+  }
+
+  throw new Error(
+    'Invalid wallet: must be 42-char address or 66-char private key.\n' +
+      'Address example: 0x4554A88d9e4D1bef5338F65A3Cd335C6A27E5368\n' +
+      'Private key example: 0x1234567890abcdef...'
+  );
+}
+
+/**
  * Resolve wallet configuration from options or environment.
+ * Returns a full account (with private key) for signing operations.
  *
  * Priority:
  * 1. Explicit wallet option
  * 2. SKILLZ_WALLET_KEY environment variable
  *
+ * @deprecated Use resolveWalletToAddress when you only need the address.
+ *             This function requires the private key and should only be used
+ *             when signing is needed.
  * @param wallet - Optional explicit wallet private key
  * @returns Object with account and address
  * @throws Error if no wallet is configured

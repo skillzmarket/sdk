@@ -2,10 +2,9 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve as honoServe } from '@hono/node-server';
 import type { SkillsMap, ServeOptions } from './types.js';
-import { resolveWallet, verifyWalletMatch } from './utils/wallet.js';
+import { resolveWalletToAddress } from './utils/wallet.js';
 import { createPaymentMiddleware } from './payment.js';
 import { register, buildRegisterOptions } from './register.js';
-import type { Hex } from 'viem';
 
 const DEFAULT_PORT = 3002;
 const DEFAULT_NETWORK = 'eip155:8453' as const;
@@ -36,6 +35,7 @@ export async function serve(
   const {
     port = DEFAULT_PORT,
     wallet,
+    apiKey,
     network = DEFAULT_NETWORK,
     facilitatorUrl = DEFAULT_FACILITATOR_URL,
     appName = DEFAULT_APP_NAME,
@@ -52,22 +52,11 @@ export async function serve(
     throw new Error('No skills provided. Pass at least one skill to serve().');
   }
 
-  // Resolve wallet
-  const { account, address: walletAddress } = resolveWallet(wallet as Hex | undefined);
+  // Resolve wallet to address (no private key needed now!)
+  const walletAddress = resolveWalletToAddress(wallet);
 
-  // Verify wallet match when auto-registration is enabled
-  if (registerOpts && registerOpts.enabled !== false) {
-    const registerAccount = buildRegisterOptions(registerOpts, account).account;
-    const verification = verifyWalletMatch(registerAccount, walletAddress);
-
-    if (!verification.match) {
-      throw new Error(
-        `Wallet mismatch: serve wallet (${verification.address2}) differs from ` +
-          `registration wallet (${verification.address1}). ` +
-          `Use the same wallet for both to ensure payments are received correctly.`
-      );
-    }
-  }
+  // Resolve API key
+  const resolvedApiKey = apiKey ?? process.env.SKILLZ_API_KEY ?? '';
 
   // Create Hono app
   const app = new Hono();
@@ -188,30 +177,36 @@ export async function serve(
 
       // Auto-register skills if registration is configured
       if (registerOpts && registerOpts.enabled !== false) {
-        console.log('  Registering skills with Skillz Market...');
-        console.log('');
-
-        const registerOptions = buildRegisterOptions(registerOpts, account);
-        const results = await register(skills, registerOptions);
-
-        // Log registration results
-        const successful = results.filter((r) => r.success);
-        const failed = results.filter((r) => !r.success);
-
-        if (successful.length > 0) {
-          console.log('  ✓ Registered skills:');
-          for (const result of successful) {
-            console.log(`    - ${result.name} (${result.slug})`);
-          }
+        if (!resolvedApiKey) {
+          console.warn('  ⚠️  No API key provided. Skills will not be registered.');
+          console.warn('     Get an API key from https://skillz.market/dashboard');
           console.log('');
-        }
-
-        if (failed.length > 0 && registerOpts.onError !== 'silent') {
-          console.log('  ✗ Failed to register:');
-          for (const result of failed) {
-            console.log(`    - ${result.name}: ${result.error}`);
-          }
+        } else {
+          console.log('  Registering skills with Skillz Market...');
           console.log('');
+
+          const registerOptions = buildRegisterOptions(registerOpts, resolvedApiKey, walletAddress);
+          const results = await register(skills, registerOptions);
+
+          // Log registration results
+          const successful = results.filter((r) => r.success);
+          const failed = results.filter((r) => !r.success);
+
+          if (successful.length > 0) {
+            console.log('  ✓ Registered skills:');
+            for (const result of successful) {
+              console.log(`    - ${result.name} (${result.slug})`);
+            }
+            console.log('');
+          }
+
+          if (failed.length > 0 && registerOpts.onError !== 'silent') {
+            console.log('  ✗ Failed to register:');
+            for (const result of failed) {
+              console.log(`    - ${result.name}: ${result.error}`);
+            }
+            console.log('');
+          }
         }
 
         console.log('='.repeat(50));
