@@ -3,6 +3,11 @@ import type { Hex, Address } from 'viem';
 import type { PrivateKeyAccount } from 'viem/accounts';
 
 /**
+ * Wallet configuration that can be resolved to an address
+ */
+export type WalletConfig = Hex | PrivateKeyAccount;
+
+/**
  * Resolve wallet configuration from options or environment.
  *
  * Priority:
@@ -56,4 +61,49 @@ export function maskPrivateKey(key: Hex): string {
     return '0x****';
   }
   return `${key.slice(0, 6)}...${key.slice(-4)}`;
+}
+
+/**
+ * Resolve a wallet config to an address
+ */
+function resolveWalletAddress(wallet: WalletConfig): Address {
+  if (typeof wallet === 'string') {
+    return privateKeyToAccount(wallet).address;
+  }
+  return wallet.address;
+}
+
+/**
+ * Verify two wallet sources resolve to the same address.
+ *
+ * Use this to ensure the wallet used for registration matches
+ * the wallet used for serving (receiving payments).
+ *
+ * @param wallet1 - First wallet (private key or account)
+ * @param wallet2 - Second wallet (private key, account, or address)
+ * @returns Object with match status and resolved addresses
+ *
+ * @example
+ * ```typescript
+ * const result = verifyWalletMatch(registerAccount, serveWallet);
+ * if (!result.match) {
+ *   throw new Error(`Wallet mismatch: ${result.address1} vs ${result.address2}`);
+ * }
+ * ```
+ */
+export function verifyWalletMatch(
+  wallet1: WalletConfig,
+  wallet2: WalletConfig | Address
+): { match: boolean; address1: Address; address2: Address } {
+  const address1 = resolveWalletAddress(wallet1);
+  const address2 =
+    typeof wallet2 === 'string' && wallet2.length === 42
+      ? (wallet2 as Address)
+      : resolveWalletAddress(wallet2 as WalletConfig);
+
+  return {
+    match: address1.toLowerCase() === address2.toLowerCase(),
+    address1,
+    address2,
+  };
 }

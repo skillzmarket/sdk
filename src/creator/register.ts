@@ -1,4 +1,5 @@
 import type { PrivateKeyAccount } from 'viem/accounts';
+import type { Address } from 'viem';
 import type { SkillsMap, RegistrationResult, RegistrationOptions } from './types.js';
 import { authenticate, authenticatedFetch } from './auth.js';
 
@@ -11,6 +12,12 @@ export interface RegisterOptions {
   endpoint: string;
   apiUrl?: string;
   onError?: 'throw' | 'warn' | 'silent';
+  /**
+   * Optional expected payment address for verification.
+   * If provided, registration will fail if the account address
+   * doesn't match this expected address.
+   */
+  expectedPaymentAddress?: Address;
 }
 
 interface SkillPayload {
@@ -62,11 +69,21 @@ export async function register(
   skills: SkillsMap,
   options: RegisterOptions
 ): Promise<RegistrationResult[]> {
-  const { account, endpoint, apiUrl = DEFAULT_API_URL, onError = 'warn' } = options;
+  const { account, endpoint, apiUrl = DEFAULT_API_URL, onError = 'warn', expectedPaymentAddress } = options;
 
   const skillNames = Object.keys(skills);
   if (skillNames.length === 0) {
     return [];
+  }
+
+  // Verify payment address matches if expected address is provided
+  if (expectedPaymentAddress) {
+    if (account.address.toLowerCase() !== expectedPaymentAddress.toLowerCase()) {
+      const message = `Payment address mismatch: registration account (${account.address}) ` +
+        `does not match expected payment address (${expectedPaymentAddress}). ` +
+        `Ensure the same wallet is used for registration and serving.`;
+      return handleRegistrationError(message, skillNames, onError);
+    }
   }
 
   // Normalize endpoint (remove trailing slash)

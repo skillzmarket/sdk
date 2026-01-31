@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve as honoServe } from '@hono/node-server';
 import type { SkillsMap, ServeOptions } from './types.js';
-import { resolveWallet } from './utils/wallet.js';
+import { resolveWallet, verifyWalletMatch } from './utils/wallet.js';
 import { createPaymentMiddleware } from './payment.js';
 import { register, buildRegisterOptions } from './register.js';
 import type { Hex } from 'viem';
@@ -54,6 +54,20 @@ export async function serve(
 
   // Resolve wallet
   const { account, address: walletAddress } = resolveWallet(wallet as Hex | undefined);
+
+  // Verify wallet match when auto-registration is enabled
+  if (registerOpts && registerOpts.enabled !== false) {
+    const registerAccount = buildRegisterOptions(registerOpts, account).account;
+    const verification = verifyWalletMatch(registerAccount, walletAddress);
+
+    if (!verification.match) {
+      throw new Error(
+        `Wallet mismatch: serve wallet (${verification.address2}) differs from ` +
+          `registration wallet (${verification.address1}). ` +
+          `Use the same wallet for both to ensure payments are received correctly.`
+      );
+    }
+  }
 
   // Create Hono app
   const app = new Hono();
