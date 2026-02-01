@@ -4,9 +4,9 @@ import type { ParsedPrice } from '../types.js';
  * Parse a human-friendly price string into structured price info.
  *
  * Supported formats:
- * - '$0.001' → { amount: '0.001', currency: 'USDC' }
- * - '0.005 USDC' → { amount: '0.005', currency: 'USDC' }
- * - '0.01' → { amount: '0.01', currency: 'USDC' }
+ * - '$0.001' → { amount: 0.001, currency: 'USDC' }
+ * - '0.005 USDC' → { amount: 0.005, currency: 'USDC' }
+ * - '0.01' → { amount: 0.01, currency: 'USDC' }
  *
  * @param price - Human-friendly price string
  * @returns Parsed price with amount and currency
@@ -23,7 +23,7 @@ export function parsePrice(price: string): ParsedPrice {
       throw new Error(`Invalid price amount: "${amount}" is not a valid decimal number`);
     }
     validateAmount(amount);
-    return { amount, currency: 'USDC' };
+    return { amount: parseFloat(amount), currency: 'USDC' };
   }
 
   // Format: 0.005 USDC (with proper decimal validation)
@@ -31,13 +31,13 @@ export function parsePrice(price: string): ParsedPrice {
   if (usdcMatch?.[1]) {
     const amount = usdcMatch[1];
     validateAmount(amount);
-    return { amount, currency: 'USDC' };
+    return { amount: parseFloat(amount), currency: 'USDC' };
   }
 
   // Format: just a number (assume USDC) with proper decimal validation
   if (/^\d+(?:\.\d+)?$/.test(trimmed)) {
     validateAmount(trimmed);
-    return { amount: trimmed, currency: 'USDC' };
+    return { amount: parseFloat(trimmed), currency: 'USDC' };
   }
 
   throw new Error(

@@ -21,7 +21,7 @@ export interface RegisterOptions {
 interface SkillPayload {
   name: string;
   endpoint: string;
-  price: string;
+  price: number;
   paymentAddress: string;
   description?: string;
   inputSchema?: unknown;

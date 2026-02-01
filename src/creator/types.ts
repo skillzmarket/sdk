@@ -40,8 +40,8 @@ export interface SkillOptions {
  * Parsed price information
  */
 export interface ParsedPrice {
-  /** Amount as a decimal string (e.g., '0.001') */
-  amount: string;
+  /** Amount as a decimal number (e.g., 0.001) */
+  amount: number;
   /** Currency (currently only 'USDC' supported) */
   currency: 'USDC';
 }

@@ -6,7 +6,7 @@ describe('skill', () => {
     const mySkill = skill({ price: '$0.001' }, async (input) => input);
 
     expect(mySkill.options.price).toBe('$0.001');
-    expect(mySkill.parsedPrice).toEqual({ amount: '0.001', currency: 'USDC' });
+    expect(mySkill.parsedPrice).toEqual({ amount: 0.001, currency: 'USDC' });
     expect(mySkill.options.timeout).toBe(60000);
     expect(mySkill.handler).toBeInstanceOf(Function);
   });
@@ -24,7 +24,7 @@ describe('skill', () => {
     expect(mySkill.options.price).toBe('0.005 USDC');
     expect(mySkill.options.description).toBe('Test skill');
     expect(mySkill.options.timeout).toBe(30000);
-    expect(mySkill.parsedPrice).toEqual({ amount: '0.005', currency: 'USDC' });
+    expect(mySkill.parsedPrice).toEqual({ amount: 0.005, currency: 'USDC' });
   });
 
   it('executes handler correctly', async () => {
