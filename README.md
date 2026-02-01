@@ -34,7 +34,7 @@ npx @skillzmarket/sdk init
 
 This will:
 1. Guide you through getting an API key from the dashboard
-2. Configure your wallet address for receiving payments
+2. Set up your wallet (use existing or generate a new one)
 3. Save configuration to `.env`
 
 Then create your skills:
@@ -178,7 +178,7 @@ npx @skillzmarket/sdk init
 
 This guides you through:
 - Getting an API key from [skillz.market/dashboard](https://skillz.market/dashboard)
-- Configuring your wallet address
+- Setting up your wallet (enter existing address or generate a new one)
 - Saving to `.env`
 
 #### 2. Manual Setup
@@ -251,17 +251,27 @@ serve({ summarize, translate }, {
 
 Interactive CLI setup that guides you through configuration:
 
+```bash
+npx @skillzmarket/sdk init
+```
+
+The wizard will:
+
+1. **API Key Setup**: Guide you to get an API key from the dashboard
+2. **Wallet Setup**: Ask if you have an existing wallet
+   - **Yes**: Enter your wallet address (0x...)
+   - **No**: Option to generate a new wallet
+     - Generates a secure private key and address
+     - Displays the private key with a security warning
+     - Saves both `SKILLZ_WALLET_ADDRESS` and `SKILLZ_WALLET_KEY` to `.env`
+3. **Save Configuration**: Write to `.env` file or show shell export commands
+
+You can also call it programmatically:
+
 ```typescript
 import { init } from '@skillzmarket/sdk/creator';
 
 await init();
-// Prompts for API key, wallet address, saves to .env
-```
-
-Or run directly:
-
-```bash
-npx @skillzmarket/sdk init
 ```
 
 #### checkConfig()
@@ -349,9 +359,9 @@ Benefits over wallet signing on every start:
 |----------|-------------|----------|
 | `SKILLZ_API_KEY` | API key for registration | Yes (creator) |
 | `SKILLZ_WALLET_ADDRESS` | Wallet address for receiving payments | Yes (creator) |
-| `SKILLZ_WALLET_KEY` | Private key (legacy, address is derived) | No* |
+| `SKILLZ_WALLET_KEY` | Private key (saved when wallet is generated via `init`) | No* |
 
-*`SKILLZ_WALLET_KEY` is supported for backwards compatibility but `SKILLZ_WALLET_ADDRESS` is preferred since you don't need the private key for serving skills.
+*`SKILLZ_WALLET_KEY` is automatically saved when you generate a new wallet via `npx @skillzmarket/sdk init`. For serving skills, only the address is needed. The private key is useful for consumers making payments or if you need to access the generated wallet elsewhere.
 
 ## Security Considerations
 
@@ -364,6 +374,12 @@ All API URLs must use HTTPS. The SDK rejects HTTP URLs (except localhost for dev
 With API key authentication, your skill server only needs a wallet **address** (not private key) for receiving payments. The private key is only used when:
 - Creating your account (one-time signature in dashboard)
 - Making payments as a consumer
+
+**If you generate a wallet via `init`:**
+- The private key is displayed once and saved to `.env`
+- Store it securely (password manager, hardware wallet backup)
+- Never commit `.env` to source control
+- You cannot retrieve the private key later if lost
 
 ### API Key Security
 
