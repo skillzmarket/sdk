@@ -91,6 +91,21 @@ export async function serve(
         input = {};
       }
 
+      // Extract payment info from x402 request header
+      let paymentInfo: { payer?: string; txHash?: string } = {};
+      const paymentHeader = c.req.header('X-PAYMENT');
+      if (paymentHeader) {
+        try {
+          const decoded = JSON.parse(Buffer.from(paymentHeader, 'base64').toString());
+          // Extract payer from the payment payload
+          paymentInfo.payer = decoded?.payload?.authorization?.from
+            || decoded?.payload?.from
+            || decoded?.from;
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
       // Call onCall callback if provided
       if (onCall) {
         try {
@@ -103,20 +118,42 @@ export async function serve(
       try {
         const result = await definition.handler(input);
 
-        // Track call to Skillz Market analytics (non-blocking)
-        if (trackCalls) {
-          fetch(`${apiUrl}/analytics/call`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ skillSlug: name }),
-          }).catch(() => {}); // Silently ignore tracking errors
-        }
-
-        return c.json({
+        // Build response
+        const response = c.json({
           success: true,
           result,
           timestamp: new Date().toISOString(),
         });
+
+        // Track call to Skillz Market analytics with payment info (non-blocking)
+        // Note: We track after skill execution to ensure the call was successful
+        if (trackCalls) {
+          // Try to extract tx hash from PAYMENT-RESPONSE header if available
+          // This is set by x402 middleware after payment settlement
+          const paymentResponseHeader = response.headers.get('PAYMENT-RESPONSE');
+          if (paymentResponseHeader) {
+            try {
+              const settlement = JSON.parse(Buffer.from(paymentResponseHeader, 'base64').toString());
+              paymentInfo.payer = settlement?.payer || paymentInfo.payer;
+              paymentInfo.txHash = settlement?.transaction;
+            } catch {
+              // Ignore parse errors
+            }
+          }
+
+          fetch(`${apiUrl}/analytics/usage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              skillSlug: name,
+              consumerAddress: paymentInfo.payer,
+              paymentTxHash: paymentInfo.txHash,
+              amount: definition.parsedPrice.amount,
+            }),
+          }).catch(() => {}); // Silently ignore tracking errors
+        }
+
+        return response;
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
 
