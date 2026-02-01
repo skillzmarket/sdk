@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 
 const DASHBOARD_URL = 'https://skillz.market/dashboard';
 
@@ -81,21 +82,62 @@ export async function init(): Promise<void> {
     console.log('');
   }
 
-  // Ask for wallet address
+  // Ask about wallet setup
   console.log('');
-  const walletAddress = await question('Your wallet address for receiving payments (0x...): ');
+  let walletAddress: string;
+  let generatedPrivateKey: `0x${string}` | null = null;
 
-  if (!walletAddress) {
-    console.log('');
-    console.log('No wallet address provided. Setup cancelled.');
-    rl.close();
-    return;
-  }
+  const hasWallet = await question('Do you have a wallet set up to receive payments? (y/N): ');
 
-  if (!walletAddress.startsWith('0x') || walletAddress.length !== 42) {
+  if (hasWallet.toLowerCase() === 'y') {
+    // User has existing wallet
+    const inputAddress = await question('Enter your wallet address (0x...): ');
+
+    if (!inputAddress) {
+      console.log('');
+      console.log('No wallet address provided. Setup cancelled.');
+      rl.close();
+      return;
+    }
+
+    if (!inputAddress.startsWith('0x') || inputAddress.length !== 42) {
+      console.log('');
+      console.log('⚠️  Warning: Wallet address should be 42 characters starting with "0x"');
+      console.log('');
+    }
+
+    walletAddress = inputAddress;
+  } else {
+    // User doesn't have a wallet
     console.log('');
-    console.log('⚠️  Warning: Wallet address should be 42 characters starting with "0x"');
+    const generateWallet = await question('Would you like to generate a new wallet? (y/N): ');
+
+    if (generateWallet.toLowerCase() !== 'y') {
+      console.log('');
+      console.log('You need a wallet to receive payments for your skills.');
+      console.log('Run this setup again when you have a wallet ready.');
+      rl.close();
+      return;
+    }
+
+    // Generate new wallet
+    generatedPrivateKey = generatePrivateKey();
+    const account = privateKeyToAccount(generatedPrivateKey);
+    walletAddress = account.address;
+
     console.log('');
+    console.log('╔════════════════════════════════════════════════════════════════╗');
+    console.log('║  ⚠️  IMPORTANT: SAVE YOUR PRIVATE KEY NOW!                      ║');
+    console.log('║                                                                 ║');
+    console.log('║  You will NOT be able to retrieve it later.                    ║');
+    console.log('║  Store it securely (password manager, hardware wallet).        ║');
+    console.log('╚════════════════════════════════════════════════════════════════╝');
+    console.log('');
+    console.log(`  Private Key:    ${generatedPrivateKey}`);
+    console.log(`  Wallet Address: ${walletAddress}`);
+    console.log('');
+
+    await question('Press Enter once you have saved your private key...');
   }
 
   // Ask where to save
@@ -123,7 +165,12 @@ export async function init(): Promise<void> {
       // Remove existing SKILLZ_ variables
       envContent = envContent
         .split('\n')
-        .filter((line) => !line.startsWith('SKILLZ_API_KEY=') && !line.startsWith('SKILLZ_WALLET_ADDRESS='))
+        .filter(
+          (line) =>
+            !line.startsWith('SKILLZ_API_KEY=') &&
+            !line.startsWith('SKILLZ_WALLET_ADDRESS=') &&
+            !line.startsWith('SKILLZ_WALLET_KEY=')
+        )
         .join('\n');
 
       if (envContent && !envContent.endsWith('\n')) {
@@ -135,6 +182,9 @@ export async function init(): Promise<void> {
     envContent += `\n# Skillz Market SDK Configuration\n`;
     envContent += `SKILLZ_API_KEY=${apiKey}\n`;
     envContent += `SKILLZ_WALLET_ADDRESS=${walletAddress}\n`;
+    if (generatedPrivateKey) {
+      envContent += `SKILLZ_WALLET_KEY=${generatedPrivateKey}\n`;
+    }
 
     fs.writeFileSync(envPath, envContent);
 
@@ -146,6 +196,9 @@ export async function init(): Promise<void> {
     console.log('');
     console.log(`  export SKILLZ_API_KEY="${apiKey}"`);
     console.log(`  export SKILLZ_WALLET_ADDRESS="${walletAddress}"`);
+    if (generatedPrivateKey) {
+      console.log(`  export SKILLZ_WALLET_KEY="${generatedPrivateKey}"`);
+    }
     console.log('');
     console.log('Or add to your shell profile (~/.bashrc, ~/.zshrc, etc.)');
   } else {
