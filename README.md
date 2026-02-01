@@ -10,6 +10,7 @@ SDK for discovering and calling paid AI skills with automatic x402 crypto paymen
 - **Discover skills** - Search and explore the Skillz Market registry
 - **Automatic payments** - x402 protocol handles USDC payments seamlessly
 - **Create skills** - Monetize your AI services with zero crypto knowledge
+- **Simple auth** - API key authentication (no wallet signing on each start)
 - **Type-safe** - Full TypeScript support with comprehensive types
 - **Base network** - Fast, low-cost transactions on Base mainnet
 
@@ -23,6 +24,37 @@ pnpm add @skillzmarket/sdk viem
 
 ## Quick Start
 
+### Creator: Monetize Your Skills
+
+The fastest way to get started is with the interactive setup:
+
+```bash
+npx @skillzmarket/sdk init
+```
+
+This will:
+1. Guide you through getting an API key from the dashboard
+2. Configure your wallet address for receiving payments
+3. Save configuration to `.env`
+
+Then create your skills:
+
+```typescript
+import { skill, serve } from '@skillzmarket/sdk/creator';
+
+const echo = skill({
+  price: '$0.001',
+  description: 'Echoes input back',
+}, async (input) => ({ echo: input }));
+
+serve({ echo }, {
+  register: {
+    endpoint: 'https://your-server.com',
+    enabled: true,
+  },
+});
+```
+
 ### Consumer: Call Paid Skills
 
 ```typescript
@@ -30,15 +62,6 @@ import { SkillzMarket } from '@skillzmarket/sdk';
 
 const market = new SkillzMarket({ wallet: '0x...' });
 const result = await market.call('text-to-image', { prompt: 'A sunset' });
-```
-
-### Creator: Monetize Your Skills
-
-```typescript
-import { skill, serve } from '@skillzmarket/sdk/creator';
-
-const echo = skill({ price: '$0.001' }, async (input) => ({ echo: input }));
-serve({ echo }); // Run: SKILLZ_WALLET_KEY=0x... npx tsx index.ts
 ```
 
 ## Documentation
@@ -145,6 +168,37 @@ Payments use the [x402 protocol](https://x402.org):
 
 The creator API lets you monetize your AI skills.
 
+### Getting Started
+
+#### 1. Interactive Setup (Recommended)
+
+```bash
+npx @skillzmarket/sdk init
+```
+
+This guides you through:
+- Getting an API key from [skillz.market/dashboard](https://skillz.market/dashboard)
+- Configuring your wallet address
+- Saving to `.env`
+
+#### 2. Manual Setup
+
+Set environment variables:
+
+```bash
+export SKILLZ_API_KEY="sk_..."          # API key from dashboard
+export SKILLZ_WALLET_ADDRESS="0x..."     # Your wallet address
+```
+
+Or pass them directly:
+
+```typescript
+serve({ echo }, {
+  apiKey: 'sk_...',
+  wallet: '0x...',
+});
+```
+
 ### Functions
 
 | Function | Description |
@@ -152,6 +206,8 @@ The creator API lets you monetize your AI skills.
 | `skill(options, handler)` | Define a monetized skill |
 | `serve(skills, options?)` | Start the skill server |
 | `register(skills, options)` | Register skills with marketplace |
+| `init()` | Interactive CLI setup |
+| `checkConfig()` | Validate SDK configuration |
 
 ### Example
 
@@ -189,6 +245,45 @@ serve({ summarize, translate }, {
 });
 ```
 
+### Configuration Helpers
+
+#### init()
+
+Interactive CLI setup that guides you through configuration:
+
+```typescript
+import { init } from '@skillzmarket/sdk/creator';
+
+await init();
+// Prompts for API key, wallet address, saves to .env
+```
+
+Or run directly:
+
+```bash
+npx @skillzmarket/sdk init
+```
+
+#### checkConfig()
+
+Validate that required configuration is present:
+
+```typescript
+import { checkConfig } from '@skillzmarket/sdk/creator';
+
+const config = checkConfig();
+
+if (!config.configured) {
+  console.error('Configuration issues:');
+  config.issues.forEach(issue => console.error(`  - ${issue}`));
+  process.exit(1);
+}
+
+// config.apiKey - boolean, true if SKILLZ_API_KEY is valid
+// config.walletAddress - boolean, true if wallet is configured
+// config.issues - string[], list of configuration problems
+```
+
 ### Price Formats
 
 Creators can specify prices in multiple formats:
@@ -216,7 +311,10 @@ interface SkillOptions {
 ```typescript
 interface ServeOptions {
   port?: number;           // Port to listen on (default: 3002)
-  wallet?: Hex;            // Private key (or use SKILLZ_WALLET_KEY env)
+  wallet?: string;         // Wallet address (42-char) or private key (66-char)
+                           // Falls back to SKILLZ_WALLET_ADDRESS or SKILLZ_WALLET_KEY env
+  apiKey?: string;         // API key for registration
+                           // Falls back to SKILLZ_API_KEY env
   network?: string;        // Network (default: 'eip155:8453')
   register?: {
     endpoint: string;      // Your public server URL
@@ -230,13 +328,30 @@ interface ServeOptions {
 
 ---
 
+## Authentication Flow
+
+The SDK uses API key authentication for skill registration:
+
+1. **One-time setup**: Sign with your wallet on [skillz.market/dashboard](https://skillz.market/dashboard) to create your account
+2. **Get API key**: Create an API key in the dashboard's "API Keys" section
+3. **Use in SDK**: The API key authenticates registration requests - no signing required
+
+Benefits over wallet signing on every start:
+- No private key needed in your skill server
+- Can rotate/revoke keys without changing wallet
+- Same security (wallet verified at account creation)
+
+---
+
 ## Environment Variables
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `SKILLZ_WALLET_KEY` | Private key for payments (Creator) | Yes* |
+| `SKILLZ_API_KEY` | API key for registration | Yes (creator) |
+| `SKILLZ_WALLET_ADDRESS` | Wallet address for receiving payments | Yes (creator) |
+| `SKILLZ_WALLET_KEY` | Private key (legacy, address is derived) | No* |
 
-*Required for `serve()` if not passed in options.
+*`SKILLZ_WALLET_KEY` is supported for backwards compatibility but `SKILLZ_WALLET_ADDRESS` is preferred since you don't need the private key for serving skills.
 
 ## Security Considerations
 
@@ -246,9 +361,16 @@ All API URLs must use HTTPS. The SDK rejects HTTP URLs (except localhost for dev
 
 ### Wallet Security
 
-- Never hardcode private keys in source code
-- Use environment variables or secure key management
-- Consider hardware wallets for production
+With API key authentication, your skill server only needs a wallet **address** (not private key) for receiving payments. The private key is only used when:
+- Creating your account (one-time signature in dashboard)
+- Making payments as a consumer
+
+### API Key Security
+
+- Store API keys securely (environment variables, secrets manager)
+- Never commit API keys to source control
+- Rotate keys if compromised via the dashboard
+- Use separate keys for development/production
 
 ### Error Handling
 
@@ -298,6 +420,13 @@ interface SkillDefinition<TInput, TOutput> {
 interface ParsedPrice {
   amount: string;
   currency: 'USDC';
+}
+
+interface RegistrationResult {
+  name: string;
+  success: boolean;
+  slug?: string;
+  error?: string;
 }
 ```
 
