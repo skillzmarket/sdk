@@ -34,6 +34,11 @@ export interface SkillOptions {
    * JSON Schema describing the output format
    */
   outputSchema?: JsonSchema;
+  /**
+   * Groups to assign this skill to.
+   * Merged with global groups from RegistrationOptions.
+   */
+  groups?: string[];
 }
 
 /**
@@ -70,6 +75,16 @@ export interface SkillDefinition<TInput = unknown, TOutput = unknown> {
 export type SkillsMap = Record<string, SkillDefinition<any, any>>;
 
 /**
+ * Options for batch operations
+ */
+export interface BatchOptions {
+  /**
+   * Maximum concurrent requests (default: 5)
+   */
+  concurrency?: number;
+}
+
+/**
  * Options for skill registration
  */
 export interface RegistrationOptions {
@@ -95,6 +110,16 @@ export interface RegistrationOptions {
    * - 'silent': Silently ignore registration failures
    */
   onError?: 'throw' | 'warn' | 'silent';
+  /**
+   * Global group slugs to assign skills to.
+   * Merged with per-skill groups from SkillOptions.
+   * Groups must already exist and belong to the authenticated creator.
+   */
+  groups?: string[];
+  /**
+   * Batch options for parallel registration.
+   */
+  batch?: BatchOptions;
 }
 
 /**
@@ -107,6 +132,36 @@ export interface RegistrationResult {
   success: boolean;
   /** Slug assigned by the registry (if successful) */
   slug?: string;
+  /** Error message (if failed) */
+  error?: string;
+}
+
+/**
+ * Data for updating a skill
+ */
+export interface SkillUpdateData {
+  /** Updated description */
+  description?: string;
+  /** Updated price in human-friendly format */
+  price?: string;
+  /** Updated groups (replaces existing) */
+  groups?: string[];
+  /** Updated input schema */
+  inputSchema?: JsonSchema;
+  /** Updated output schema */
+  outputSchema?: JsonSchema;
+  /** Whether the skill is active */
+  isActive?: boolean;
+}
+
+/**
+ * Result of updating a skill
+ */
+export interface UpdateResult {
+  /** Slug of the skill */
+  slug: string;
+  /** Whether the update was successful */
+  success: boolean;
   /** Error message (if failed) */
   error?: string;
 }
@@ -158,16 +213,6 @@ export interface ServeOptions {
    * If provided, skills will be registered after the server starts.
    */
   register?: RegistrationOptions;
-  /**
-   * Whether to track skill calls to Skillz Market analytics.
-   * Default: true
-   */
-  trackCalls?: boolean;
-  /**
-   * API URL for analytics tracking.
-   * Default: 'https://api.skillz.market'
-   */
-  apiUrl?: string;
 }
 
 /**

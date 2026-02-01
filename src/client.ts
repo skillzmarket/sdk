@@ -1,6 +1,6 @@
-import { DiscoveryClient } from './discovery.js';
+import { DiscoveryClient, type SkillGroupWithSkills } from './discovery.js';
 import { createPaymentFetch, getWalletAddress, DEFAULT_NETWORK } from './payment.js';
-import type { Skill, SearchFilters, SkillzMarketOptions, WalletConfig } from './types.js';
+import type { Skill, SkillGroup, SearchFilters, SkillzMarketOptions, WalletConfig } from './types.js';
 
 const DEFAULT_API_URL = 'https://api.skillz.market';
 
@@ -59,6 +59,14 @@ export class SkillzMarket {
     return this.discovery.getReviews(skillSlug);
   }
 
+  async getGroups(creatorAddress?: string): Promise<SkillGroup[]> {
+    return this.discovery.getGroups(creatorAddress);
+  }
+
+  async getGroup(slug: string, creatorAddress?: string): Promise<SkillGroupWithSkills> {
+    return this.discovery.getGroup(slug, creatorAddress);
+  }
+
   // Execution (handles x402 payment automatically)
   async call<T = unknown>(slug: string, input: Record<string, unknown>): Promise<T> {
     if (!this.paymentFetch || !this.wallet) {
@@ -79,6 +87,27 @@ export class SkillzMarket {
 
     if (!response.ok) {
       throw new Error(`Skill call failed: ${response.statusText}`);
+    }
+
+    // Track payment after successful call (fire and forget)
+    // The PAYMENT-RESPONSE header is set by x402 middleware with settlement info
+    const settlementHeader = response.headers.get('PAYMENT-RESPONSE');
+    if (settlementHeader) {
+      try {
+        const settlement = JSON.parse(Buffer.from(settlementHeader, 'base64').toString());
+        fetch(`${this.apiUrl}/analytics/usage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            skillSlug: slug,
+            consumerAddress: settlement.payer,
+            paymentTxHash: settlement.transaction,
+            amount: skill.price,
+          }),
+        }).catch(() => {}); // Silent fail - don't block the response
+      } catch {
+        // Ignore parse errors
+      }
     }
 
     return response.json();

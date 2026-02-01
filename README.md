@@ -126,6 +126,8 @@ const market = new SkillzMarket({
 | `call(slug, input)` | Call a skill with automatic payment |
 | `getCreator(address)` | Get creator profile |
 | `getReviews(slug)` | Get reviews for a skill |
+| `getGroups(creatorAddress?)` | List skill groups |
+| `getGroup(slug, creatorAddress?)` | Get group with its skills |
 | `authenticate()` | Auth with wallet signature |
 | `feedback(slug, score, comment?)` | Submit a review |
 
@@ -141,6 +143,13 @@ const market = new SkillzMarket({
 // Discover skills
 const skills = await market.search('image generation');
 const skill = await market.info('text-to-image');
+
+// Search within a group
+const groupSkills = await market.search('', { group: 'ai-tools' });
+
+// Browse groups
+const groups = await market.getGroups();
+const group = await market.getGroup('ai-tools');  // Includes skills
 
 // Call with automatic payment
 const result = await market.call('text-to-image', {
@@ -206,6 +215,7 @@ serve({ echo }, {
 | `skill(options, handler)` | Define a monetized skill |
 | `serve(skills, options?)` | Start the skill server |
 | `register(skills, options)` | Register skills with marketplace |
+| `updateSkill(slug, data, options)` | Update an existing skill |
 | `init()` | Interactive CLI setup |
 | `checkConfig()` | Validate SDK configuration |
 
@@ -313,8 +323,38 @@ interface SkillOptions {
   timeout?: number;        // Max execution time (ms, default: 60000)
   inputSchema?: JsonSchema;  // JSON Schema for input validation
   outputSchema?: JsonSchema; // JSON Schema for output format
+  groups?: string[];       // Per-skill groups (merged with global)
 }
 ```
+
+### Per-Skill Groups
+
+You can assign groups at the skill level:
+
+```typescript
+const summarize = skill({
+  price: '$0.005',
+  description: 'Summarize text',
+  groups: ['text-processing'],  // This skill goes in 'text-processing' group
+}, async ({ text }) => ({ summary: '...' }));
+
+const translate = skill({
+  price: '$0.003',
+  description: 'Translate text',
+  groups: ['translation', 'text-processing'],  // Multiple groups
+}, async ({ text, lang }) => ({ translated: '...' }));
+
+serve({ summarize, translate }, {
+  register: {
+    endpoint: 'https://your-server.com',
+    groups: ['ai-tools'],  // Global groups for all skills
+  },
+});
+// summarize → ['ai-tools', 'text-processing']
+// translate → ['ai-tools', 'translation', 'text-processing']
+```
+
+**Note:** At least one group is required per skill (either from `SkillOptions.groups` or `RegistrationOptions.groups`).
 
 ### Serve Options
 
@@ -330,6 +370,10 @@ interface ServeOptions {
     endpoint: string;      // Your public server URL
     enabled?: boolean;     // Enable auto-registration
     onError?: 'throw' | 'warn' | 'silent';
+    groups?: string[];     // Global group slugs (merged with per-skill)
+    batch?: {
+      concurrency?: number;  // Max concurrent registrations (default: 5)
+    };
   };
   onCall?: (name, input) => void;   // Callback for skill calls
   onError?: (name, error) => void;  // Callback for errors
@@ -412,6 +456,7 @@ interface Skill {
   paymentAddress: string;
   isActive: boolean;
   creatorId: string;
+  groups?: SkillGroup[];  // Groups this skill belongs to
 }
 
 interface SearchFilters {
@@ -419,6 +464,19 @@ interface SearchFilters {
   minPrice?: string;
   maxPrice?: string;
   creator?: string;
+  group?: string;  // Filter by group slug
+}
+
+interface SkillGroup {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  creatorId: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 type WalletConfig = PrivateKeyAccount | Hex;
@@ -443,6 +501,46 @@ interface RegistrationResult {
   success: boolean;
   slug?: string;
   error?: string;
+}
+
+interface SkillUpdateData {
+  description?: string;
+  price?: string;
+  groups?: string[];
+  inputSchema?: JsonSchema;
+  outputSchema?: JsonSchema;
+  isActive?: boolean;
+}
+
+interface UpdateResult {
+  slug: string;
+  success: boolean;
+  error?: string;
+}
+
+interface BatchOptions {
+  concurrency?: number;  // Max concurrent requests (default: 5)
+}
+```
+
+### Updating Skills
+
+Use `updateSkill()` to update existing skills:
+
+```typescript
+import { updateSkill } from '@skillzmarket/sdk/creator';
+
+const result = await updateSkill('my-skill-slug', {
+  description: 'Updated description',
+  groups: ['new-group', 'another-group'],
+}, {
+  apiKey: process.env.SKILLZ_API_KEY!,
+});
+
+if (result.success) {
+  console.log('Skill updated!');
+} else {
+  console.error('Update failed:', result.error);
 }
 ```
 

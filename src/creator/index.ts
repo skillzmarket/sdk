@@ -22,8 +22,8 @@ import 'dotenv/config';
 
 export { skill } from './skill.js';
 export { serve } from './serve.js';
-export { register } from './register.js';
-export type { RegisterOptions } from './register.js';
+export { register, updateSkill } from './register.js';
+export type { RegisterOptions, UpdateOptions } from './register.js';
 export { init, checkConfig } from './init.js';
 export { authenticate, refreshAccessToken } from './auth.js';
 export type { AuthResult, RefreshResult } from './auth.js';
@@ -39,6 +39,9 @@ export type {
   JsonSchema,
   RegistrationOptions,
   RegistrationResult,
+  BatchOptions,
+  SkillUpdateData,
+  UpdateResult,
 } from './types.js';
 
 // Re-export utilities for advanced usage

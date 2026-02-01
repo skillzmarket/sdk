@@ -1,3 +1,15 @@
+export interface SkillGroup {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  creatorId: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Skill {
   id: string;
   slug: string;
@@ -13,6 +25,7 @@ export interface Skill {
   creatorId: string;
   createdAt: string;
   updatedAt: string;
+  groups?: SkillGroup[];
 }
 
 export interface Creator {
@@ -38,6 +51,8 @@ export interface SearchFilters {
   minPrice?: string;
   maxPrice?: string;
   creator?: string;
+  verified?: boolean;
+  group?: string;  // Filter by group slug
 }
 
 import type { Hex } from 'viem';

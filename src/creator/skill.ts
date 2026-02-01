@@ -39,6 +39,18 @@ export function skill<TInput = unknown, TOutput = unknown>(
     }
   }
 
+  // Validate groups if provided
+  if (options.groups !== undefined) {
+    if (!Array.isArray(options.groups)) {
+      throw new Error('Groups must be an array of strings');
+    }
+    for (const group of options.groups) {
+      if (typeof group !== 'string' || group.trim() === '') {
+        throw new Error('Each group must be a non-empty string');
+      }
+    }
+  }
+
   return {
     options: {
       ...options,

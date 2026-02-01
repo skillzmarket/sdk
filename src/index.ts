@@ -1,8 +1,10 @@
 export { SkillzMarket } from './client.js';
 export { DiscoveryClient } from './discovery.js';
+export type { SkillGroupWithSkills } from './discovery.js';
 export { createPaymentFetch, resolveAccount, getWalletAddress, DEFAULT_NETWORK } from './payment.js';
 export type {
   Skill,
+  SkillGroup,
   Creator,
   Review,
   SearchFilters,
