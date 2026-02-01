@@ -1,3 +1,6 @@
+// Load environment variables from .env file
+import 'dotenv/config';
+
 /**
  * @skillzmarket/sdk/creator - Create monetized skills with zero x402 knowledge
  *

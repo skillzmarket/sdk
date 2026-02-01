@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
+import pc from 'picocolors';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 
 const DASHBOARD_URL = 'https://skillz.market/dashboard';
@@ -32,21 +33,21 @@ export async function init(): Promise<void> {
   };
 
   console.log('');
-  console.log('='.repeat(60));
-  console.log('  Skillz Market SDK - Setup');
-  console.log('='.repeat(60));
+  console.log(pc.dim('='.repeat(60)));
+  console.log(pc.bold('  Skillz Market SDK - Setup'));
+  console.log(pc.dim('='.repeat(60)));
   console.log('');
 
   // Check for existing API key
   const existingKey = process.env.SKILLZ_API_KEY;
   if (existingKey) {
-    console.log('✓ Found existing API key in environment: SKILLZ_API_KEY');
-    console.log(`  Key prefix: ${existingKey.slice(0, 11)}...`);
+    console.log(pc.green('✓') + ' Found existing API key in environment: ' + pc.cyan('SKILLZ_API_KEY'));
+    console.log(pc.dim(`  Key prefix: ${existingKey.slice(0, 11)}...`));
     console.log('');
     const overwrite = await question('Do you want to set up a new key? (y/N): ');
     if (overwrite.toLowerCase() !== 'y') {
       console.log('');
-      console.log('Setup complete! Your existing API key will be used.');
+      console.log(pc.green('Setup complete!') + ' Your existing API key will be used.');
       rl.close();
       return;
     }
@@ -56,13 +57,13 @@ export async function init(): Promise<void> {
   // Instructions for getting an API key
   console.log('To register skills, you need an API key from Skillz Market.');
   console.log('');
-  console.log('Steps to get your API key:');
+  console.log(pc.bold('Steps to get your API key:'));
   console.log('');
-  console.log('  1. Go to: ' + DASHBOARD_URL);
-  console.log('  2. Connect your wallet');
-  console.log('  3. Sign to authenticate (one-time)');
-  console.log('  4. Find the "API Keys" section');
-  console.log('  5. Click "Create Key" and copy the key');
+  console.log(pc.dim('  1.') + ' Go to: ' + pc.cyan(DASHBOARD_URL));
+  console.log(pc.dim('  2.') + ' Connect your wallet');
+  console.log(pc.dim('  3.') + ' Sign to authenticate (one-time)');
+  console.log(pc.dim('  4.') + ' Find the "API Keys" section');
+  console.log(pc.dim('  5.') + ' Click "Create Key" and copy the key');
   console.log('');
 
   // Wait for user to get the key
@@ -70,15 +71,15 @@ export async function init(): Promise<void> {
 
   if (!apiKey) {
     console.log('');
-    console.log('No API key provided. Setup cancelled.');
+    console.log(pc.red('No API key provided. Setup cancelled.'));
     rl.close();
     return;
   }
 
   if (!apiKey.startsWith('sk_')) {
     console.log('');
-    console.log('⚠️  Warning: API keys should start with "sk_"');
-    console.log('   The key you entered might be invalid.');
+    console.log(pc.yellow('⚠️  Warning:') + ' API keys should start with "sk_"');
+    console.log(pc.dim('   The key you entered might be invalid.'));
     console.log('');
   }
 
@@ -95,14 +96,14 @@ export async function init(): Promise<void> {
 
     if (!inputAddress) {
       console.log('');
-      console.log('No wallet address provided. Setup cancelled.');
+      console.log(pc.red('No wallet address provided. Setup cancelled.'));
       rl.close();
       return;
     }
 
     if (!inputAddress.startsWith('0x') || inputAddress.length !== 42) {
       console.log('');
-      console.log('⚠️  Warning: Wallet address should be 42 characters starting with "0x"');
+      console.log(pc.yellow('⚠️  Warning:') + ' Wallet address should be 42 characters starting with "0x"');
       console.log('');
     }
 
@@ -114,8 +115,8 @@ export async function init(): Promise<void> {
 
     if (generateWallet.toLowerCase() !== 'y') {
       console.log('');
-      console.log('You need a wallet to receive payments for your skills.');
-      console.log('Run this setup again when you have a wallet ready.');
+      console.log(pc.dim('You need a wallet to receive payments for your skills.'));
+      console.log(pc.dim('Run this setup again when you have a wallet ready.'));
       rl.close();
       return;
     }
@@ -126,103 +127,75 @@ export async function init(): Promise<void> {
     walletAddress = account.address;
 
     console.log('');
-    console.log('╔════════════════════════════════════════════════════════════════╗');
-    console.log('║  ⚠️  IMPORTANT: SAVE YOUR PRIVATE KEY NOW!                      ║');
-    console.log('║                                                                 ║');
-    console.log('║  You will NOT be able to retrieve it later.                    ║');
-    console.log('║  Store it securely (password manager, hardware wallet).        ║');
-    console.log('╚════════════════════════════════════════════════════════════════╝');
+    console.log(pc.yellow('╔════════════════════════════════════════════════════════════════╗'));
+    console.log(pc.yellow('║') + pc.bold(pc.red('  ⚠️  IMPORTANT: SAVE YOUR PRIVATE KEY NOW!                     ')) + pc.yellow(' ║'));
+    console.log(pc.yellow('║                                                                 ║'));
+    console.log(pc.yellow('║') + '  You will ' + pc.bold('NOT') + ' be able to retrieve it later.                   ' + pc.yellow(' ║'));
+    console.log(pc.yellow('║') + '  Store it securely (password manager, hardware wallet).       ' + pc.yellow(' ║'));
+    console.log(pc.yellow('╚════════════════════════════════════════════════════════════════╝'));
     console.log('');
-    console.log(`  Private Key:    ${generatedPrivateKey}`);
-    console.log(`  Wallet Address: ${walletAddress}`);
+    console.log('  Private Key:    ' + pc.magenta(generatedPrivateKey));
+    console.log('  Wallet Address: ' + pc.cyan(walletAddress));
     console.log('');
 
     await question('Press Enter once you have saved your private key...');
   }
 
-  // Ask where to save
-  console.log('');
-  console.log('Where would you like to save the configuration?');
-  console.log('');
-  console.log('  1. Create/update .env file (recommended)');
-  console.log('  2. Show commands to set environment variables');
-  console.log('  3. Cancel');
-  console.log('');
+  // Write directly to .env
+  const envPath = path.resolve(process.cwd(), '.env');
+  let envContent = '';
 
-  const choice = await question('Choose an option (1/2/3): ');
+  // Read existing .env if it exists
+  if (fs.existsSync(envPath)) {
+    envContent = fs.readFileSync(envPath, 'utf-8');
 
-  console.log('');
+    // Remove existing SKILLZ_ variables
+    envContent = envContent
+      .split('\n')
+      .filter(
+        (line) =>
+          !line.startsWith('SKILLZ_API_KEY=') &&
+          !line.startsWith('SKILLZ_WALLET_ADDRESS=') &&
+          !line.startsWith('SKILLZ_WALLET_KEY=')
+      )
+      .join('\n');
 
-  if (choice === '1') {
-    // Write to .env file
-    const envPath = path.resolve(process.cwd(), '.env');
-    let envContent = '';
-
-    // Read existing .env if it exists
-    if (fs.existsSync(envPath)) {
-      envContent = fs.readFileSync(envPath, 'utf-8');
-
-      // Remove existing SKILLZ_ variables
-      envContent = envContent
-        .split('\n')
-        .filter(
-          (line) =>
-            !line.startsWith('SKILLZ_API_KEY=') &&
-            !line.startsWith('SKILLZ_WALLET_ADDRESS=') &&
-            !line.startsWith('SKILLZ_WALLET_KEY=')
-        )
-        .join('\n');
-
-      if (envContent && !envContent.endsWith('\n')) {
-        envContent += '\n';
-      }
+    if (envContent && !envContent.endsWith('\n')) {
+      envContent += '\n';
     }
-
-    // Add new variables
-    envContent += `\n# Skillz Market SDK Configuration\n`;
-    envContent += `SKILLZ_API_KEY=${apiKey}\n`;
-    envContent += `SKILLZ_WALLET_ADDRESS=${walletAddress}\n`;
-    if (generatedPrivateKey) {
-      envContent += `SKILLZ_WALLET_KEY=${generatedPrivateKey}\n`;
-    }
-
-    fs.writeFileSync(envPath, envContent);
-
-    console.log('✓ Configuration saved to .env');
-    console.log('');
-    console.log('Make sure .env is in your .gitignore!');
-  } else if (choice === '2') {
-    console.log('Add these to your environment:');
-    console.log('');
-    console.log(`  export SKILLZ_API_KEY="${apiKey}"`);
-    console.log(`  export SKILLZ_WALLET_ADDRESS="${walletAddress}"`);
-    if (generatedPrivateKey) {
-      console.log(`  export SKILLZ_WALLET_KEY="${generatedPrivateKey}"`);
-    }
-    console.log('');
-    console.log('Or add to your shell profile (~/.bashrc, ~/.zshrc, etc.)');
-  } else {
-    console.log('Setup cancelled.');
-    rl.close();
-    return;
   }
 
+  // Add new variables
+  envContent += `\n# Skillz Market SDK Configuration\n`;
+  envContent += `SKILLZ_API_KEY=${apiKey}\n`;
+  envContent += `SKILLZ_WALLET_ADDRESS=${walletAddress}\n`;
+  if (generatedPrivateKey) {
+    envContent += `SKILLZ_WALLET_KEY=${generatedPrivateKey}\n`;
+  }
+
+  fs.writeFileSync(envPath, envContent);
+
   console.log('');
-  console.log('='.repeat(60));
-  console.log('  Setup Complete!');
-  console.log('='.repeat(60));
+  console.log(pc.green('✓') + ' Configuration saved to ' + pc.cyan('.env'));
+  console.log('');
+  console.log(pc.yellow('Make sure .env is in your .gitignore!'))
+
+  console.log('');
+  console.log(pc.dim('='.repeat(60)));
+  console.log(pc.bold(pc.green('  Setup Complete!')));
+  console.log(pc.dim('='.repeat(60)));
   console.log('');
   console.log('You can now use the SDK:');
   console.log('');
-  console.log('  import { skill, serve } from "@skillzmarket/sdk/creator";');
+  console.log(pc.dim('  import { skill, serve } from "@skillzmarket/sdk/creator";'));
   console.log('');
-  console.log('  const mySkill = skill({ price: "$0.001" }, async (input) => {');
-  console.log('    return { result: "Hello!" };');
-  console.log('  });');
+  console.log(pc.dim('  const mySkill = skill({ price: "$0.001" }, async (input) => {'));
+  console.log(pc.dim('    return { result: "Hello!" };'));
+  console.log(pc.dim('  });'));
   console.log('');
-  console.log('  serve({ mySkill }, {');
-  console.log('    register: { endpoint: "https://your-server.com", enabled: true }');
-  console.log('  });');
+  console.log(pc.dim('  serve({ mySkill }, {'));
+  console.log(pc.dim('    register: { endpoint: "https://your-server.com", enabled: true }'));
+  console.log(pc.dim('  });'));
   console.log('');
 
   rl.close();
