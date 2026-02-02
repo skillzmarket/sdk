@@ -1,6 +1,6 @@
 {
   "name": "@skillzmarket/sdk",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "SDK for discovering and calling paid AI skills with automatic x402 payments",
   "type": "module",
   "main": "./dist/index.js",
@@ -61,12 +61,13 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "dotenv": "^16.0.0",
     "@hono/node-server": "^1.19.9",
+    "@skillzmarket/sdk": "workspace:^",
     "@x402/core": "^2.2.0",
     "@x402/evm": "^2.2.0",
     "@x402/fetch": "^2.2.0",
     "@x402/hono": "^2.2.0",
+    "dotenv": "^16.0.0",
     "hono": "^4.0.0",
     "picocolors": "^1.1.1",
     "user": "^0.0.0",

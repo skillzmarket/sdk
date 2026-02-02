@@ -134,6 +134,8 @@ export interface RegistrationResult {
   slug?: string;
   /** Error message (if failed) */
   error?: string;
+  /** Whether an existing skill was updated (true) or a new one created (false) */
+  updated?: boolean;
 }
 
 /**

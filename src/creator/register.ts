@@ -208,11 +208,12 @@ async function registerSkillWithRetry(
       });
 
       if (response.ok) {
-        const data = (await response.json()) as { slug: string };
+        const data = (await response.json()) as { slug: string; _updated?: boolean };
         return {
           name,
           success: true,
           slug: data.slug,
+          updated: response.status === 200, // 200 = updated, 201 = created
         };
       }
 

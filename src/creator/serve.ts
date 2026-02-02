@@ -204,11 +204,24 @@ export async function serve(
             const failed = results.filter((r) => !r.success);
 
             if (successful.length > 0) {
-              console.log('  ✓ Registered skills:');
-              for (const result of successful) {
-                console.log(`    - ${result.name} (${result.slug})`);
+              const created = successful.filter((r) => !r.updated);
+              const updated = successful.filter((r) => r.updated);
+
+              if (created.length > 0) {
+                console.log('  ✓ Registered skills:');
+                for (const result of created) {
+                  console.log(`    - ${result.name} (${result.slug})`);
+                }
+                console.log('');
               }
-              console.log('');
+
+              if (updated.length > 0) {
+                console.log('  ✓ Updated skills:');
+                for (const result of updated) {
+                  console.log(`    - ${result.name} (${result.slug})`);
+                }
+                console.log('');
+              }
             }
 
             if (failed.length > 0 && registerOpts.onError !== 'silent') {
