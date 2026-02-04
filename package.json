@@ -1,6 +1,6 @@
 {
   "name": "@skillzmarket/sdk",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "SDK for discovering and calling paid AI skills with automatic x402 payments",
   "type": "module",
   "main": "./dist/index.js",
