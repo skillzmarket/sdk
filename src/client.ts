@@ -1,6 +1,12 @@
 import { DiscoveryClient, type SkillGroupWithSkills } from './discovery.js';
 import { createPaymentFetch, getWalletAddress, DEFAULT_NETWORK } from './payment.js';
-import type { Skill, SkillGroup, SearchFilters, SkillzMarketOptions, WalletConfig } from './types.js';
+import type {
+  Skill,
+  SkillGroup,
+  SearchFilters,
+  SkillzMarketOptions,
+  WalletConfig,
+} from './types.js';
 
 const DEFAULT_API_URL = 'https://api.skillz.market';
 
@@ -175,5 +181,12 @@ export class SkillzMarket {
     if (!response.ok) {
       throw new Error(`Failed to submit feedback: ${response.statusText}`);
     }
+  }
+
+  /**
+   * Check if wallet is configured for x402 payments.
+   */
+  hasWallet(): boolean {
+    return !!this.wallet;
   }
 }

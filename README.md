@@ -268,13 +268,10 @@ npx @skillzmarket/sdk init
 The wizard will:
 
 1. **API Key Setup**: Guide you to get an API key from the dashboard
-2. **Wallet Setup**: Ask if you have an existing wallet
-   - **Yes**: Enter your wallet address (0x...)
-   - **No**: Option to generate a new wallet
-     - Generates a secure private key and address
-     - Displays the private key with a security warning
-     - Saves both `SKILLZ_WALLET_ADDRESS` and `SKILLZ_WALLET_KEY` to `.env`
-3. **Save Configuration**: Write to `.env` file or show shell export commands
+2. **Wallet Setup**: Enter your wallet address for receiving payments
+   - Use your "Spending Wallet" from the dashboard, or
+   - Use your own wallet address (MetaMask, etc.)
+3. **Save Configuration**: Write `SKILLZ_API_KEY` and `SKILLZ_WALLET_ADDRESS` to `.env`
 
 You can also call it programmatically:
 
@@ -362,7 +359,7 @@ serve({ summarize, translate }, {
 interface ServeOptions {
   port?: number;           // Port to listen on (default: 3002)
   wallet?: string;         // Wallet address (42-char) or private key (66-char)
-                           // Falls back to SKILLZ_WALLET_ADDRESS or SKILLZ_WALLET_KEY env
+                           // Falls back to SKILLZ_WALLET_ADDRESS env
   apiKey?: string;         // API key for registration
                            // Falls back to SKILLZ_API_KEY env
   network?: string;        // Network (default: 'eip155:8453')
@@ -403,9 +400,10 @@ Benefits over wallet signing on every start:
 |----------|-------------|----------|
 | `SKILLZ_API_KEY` | API key for registration | Yes (creator) |
 | `SKILLZ_WALLET_ADDRESS` | Wallet address for receiving payments | Yes (creator) |
-| `SKILLZ_WALLET_KEY` | Private key (saved when wallet is generated via `init`) | No* |
 
-*`SKILLZ_WALLET_KEY` is automatically saved when you generate a new wallet via `npx @skillzmarket/sdk init`. For serving skills, only the address is needed. The private key is useful for consumers making payments or if you need to access the generated wallet elsewhere.
+Get both values from the [Skillz Market dashboard](https://skillz.market/dashboard):
+- **API Key**: Create one in the "API Keys" section
+- **Wallet Address**: Use your "Spending Wallet" or your own wallet address
 
 ## Security Considerations
 
@@ -419,11 +417,9 @@ With API key authentication, your skill server only needs a wallet **address** (
 - Creating your account (one-time signature in dashboard)
 - Making payments as a consumer
 
-**If you generate a wallet via `init`:**
-- The private key is displayed once and saved to `.env`
-- Store it securely (password manager, hardware wallet backup)
+**Best practices:**
 - Never commit `.env` to source control
-- You cannot retrieve the private key later if lost
+- Use your dashboard's "Spending Wallet" or your own wallet address
 
 ### API Key Security
 

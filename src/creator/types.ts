@@ -179,7 +179,7 @@ export interface ServeOptions {
   /**
    * Wallet address for receiving payments.
    * Accepts either a 42-char address or a 66-char private key (derives address).
-   * Falls back to SKILLZ_WALLET_ADDRESS or SKILLZ_WALLET_KEY environment variables.
+   * Falls back to SKILLZ_WALLET_ADDRESS environment variable.
    */
   wallet?: string;
   /**

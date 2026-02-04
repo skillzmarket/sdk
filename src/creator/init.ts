@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 import pc from 'picocolors';
-import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 
 const DASHBOARD_URL = 'https://skillz.market/dashboard';
 
@@ -57,13 +56,12 @@ export async function init(): Promise<void> {
   // Instructions for getting an API key
   console.log('To register skills, you need an API key from Skillz Market.');
   console.log('');
-  console.log(pc.bold('Steps to get your API key:'));
+  console.log(pc.bold('Steps to get started:'));
   console.log('');
   console.log(pc.dim('  1.') + ' Go to: ' + pc.cyan(DASHBOARD_URL));
-  console.log(pc.dim('  2.') + ' Connect your wallet');
-  console.log(pc.dim('  3.') + ' Sign to authenticate (one-time)');
-  console.log(pc.dim('  4.') + ' Find the "API Keys" section');
-  console.log(pc.dim('  5.') + ' Click "Create Key" and copy the key');
+  console.log(pc.dim('  2.') + ' Connect your wallet or sign in with social login');
+  console.log(pc.dim('  3.') + ' Find the "API Keys" section and click "Create Key"');
+  console.log(pc.dim('  4.') + ' Copy your "Spending Wallet" address (or use your own wallet)');
   console.log('');
 
   // Wait for user to get the key
@@ -83,62 +81,27 @@ export async function init(): Promise<void> {
     console.log('');
   }
 
-  // Ask about wallet setup
+  // Ask for wallet address
   console.log('');
-  let walletAddress: string;
-  let generatedPrivateKey: `0x${string}` | null = null;
+  console.log(pc.bold('Enter your wallet address for receiving payments.'));
+  console.log('');
+  console.log(pc.dim('You can find this in the dashboard under "Spending Wallet",'));
+  console.log(pc.dim('or use your own wallet address (MetaMask, etc.)'));
+  console.log('');
 
-  const hasWallet = await question('Do you have a wallet set up to receive payments? (y/N): ');
+  const walletAddress = await question('Wallet address (0x...): ');
 
-  if (hasWallet.toLowerCase() === 'y') {
-    // User has existing wallet
-    const inputAddress = await question('Enter your wallet address (0x...): ');
-
-    if (!inputAddress) {
-      console.log('');
-      console.log(pc.red('No wallet address provided. Setup cancelled.'));
-      rl.close();
-      return;
-    }
-
-    if (!inputAddress.startsWith('0x') || inputAddress.length !== 42) {
-      console.log('');
-      console.log(pc.yellow('⚠️  Warning:') + ' Wallet address should be 42 characters starting with "0x"');
-      console.log('');
-    }
-
-    walletAddress = inputAddress;
-  } else {
-    // User doesn't have a wallet
+  if (!walletAddress) {
     console.log('');
-    const generateWallet = await question('Would you like to generate a new wallet? (y/N): ');
+    console.log(pc.red('No wallet address provided. Setup cancelled.'));
+    rl.close();
+    return;
+  }
 
-    if (generateWallet.toLowerCase() !== 'y') {
-      console.log('');
-      console.log(pc.dim('You need a wallet to receive payments for your skills.'));
-      console.log(pc.dim('Run this setup again when you have a wallet ready.'));
-      rl.close();
-      return;
-    }
-
-    // Generate new wallet
-    generatedPrivateKey = generatePrivateKey();
-    const account = privateKeyToAccount(generatedPrivateKey);
-    walletAddress = account.address;
-
+  if (!walletAddress.startsWith('0x') || walletAddress.length !== 42) {
     console.log('');
-    console.log(pc.yellow('╔════════════════════════════════════════════════════════════════╗'));
-    console.log(pc.yellow('║') + pc.bold(pc.red('  ⚠️  IMPORTANT: SAVE YOUR PRIVATE KEY NOW!                     ')) + pc.yellow(' ║'));
-    console.log(pc.yellow('║                                                                 ║'));
-    console.log(pc.yellow('║') + '  You will ' + pc.bold('NOT') + ' be able to retrieve it later.                   ' + pc.yellow(' ║'));
-    console.log(pc.yellow('║') + '  Store it securely (password manager, hardware wallet).       ' + pc.yellow(' ║'));
-    console.log(pc.yellow('╚════════════════════════════════════════════════════════════════╝'));
+    console.log(pc.yellow('⚠️  Warning:') + ' Wallet address should be 42 characters starting with "0x"');
     console.log('');
-    console.log('  Private Key:    ' + pc.magenta(generatedPrivateKey));
-    console.log('  Wallet Address: ' + pc.cyan(walletAddress));
-    console.log('');
-
-    await question('Press Enter once you have saved your private key...');
   }
 
   // Write directly to .env
@@ -169,9 +132,6 @@ export async function init(): Promise<void> {
   envContent += `\n# Skillz Market SDK Configuration\n`;
   envContent += `SKILLZ_API_KEY=${apiKey}\n`;
   envContent += `SKILLZ_WALLET_ADDRESS=${walletAddress}\n`;
-  if (generatedPrivateKey) {
-    envContent += `SKILLZ_WALLET_KEY=${generatedPrivateKey}\n`;
-  }
 
   fs.writeFileSync(envPath, envContent);
 
@@ -214,16 +174,20 @@ export function checkConfig(): {
   const issues: string[] = [];
 
   const apiKey = process.env.SKILLZ_API_KEY;
-  const walletAddress = process.env.SKILLZ_WALLET_ADDRESS || process.env.SKILLZ_WALLET_KEY;
+  const walletAddress = process.env.SKILLZ_WALLET_ADDRESS;
 
   if (!apiKey) {
-    issues.push('SKILLZ_API_KEY is not set. Run `npx @skillzmarket/sdk init` to configure.');
+    issues.push(
+      'SKILLZ_API_KEY is not set. Get your API key from the dashboard: https://skillz.market/dashboard'
+    );
   } else if (!apiKey.startsWith('sk_')) {
     issues.push('SKILLZ_API_KEY should start with "sk_"');
   }
 
   if (!walletAddress) {
-    issues.push('SKILLZ_WALLET_ADDRESS is not set. This is required for receiving payments.');
+    issues.push(
+      'SKILLZ_WALLET_ADDRESS is not set. Copy your "Spending Wallet" from the dashboard: https://skillz.market/dashboard'
+    );
   } else if (!walletAddress.startsWith('0x')) {
     issues.push('Wallet address should start with "0x"');
   }

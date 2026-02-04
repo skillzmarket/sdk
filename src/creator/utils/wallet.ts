@@ -14,21 +14,21 @@ export type WalletConfig = Hex | PrivateKeyAccount;
  * Priority:
  * 1. Explicit wallet option
  * 2. SKILLZ_WALLET_ADDRESS environment variable
- * 3. SKILLZ_WALLET_KEY environment variable (derives address)
  *
  * @param wallet - Optional explicit wallet address or private key
  * @returns The wallet address
  * @throws Error if no wallet is configured or invalid format
  */
 export function resolveWalletToAddress(wallet?: string): Address {
-  const input = wallet ?? process.env.SKILLZ_WALLET_ADDRESS ?? process.env.SKILLZ_WALLET_KEY;
+  const input = wallet ?? process.env.SKILLZ_WALLET_ADDRESS;
 
   if (!input) {
     throw new Error(
       'No wallet configured. Either:\n' +
         '1. Pass `wallet` option with an address: serve({ skills }, { wallet: "0x..." })\n' +
         '2. Set SKILLZ_WALLET_ADDRESS environment variable\n\n' +
-        'The wallet address receives payments from skill calls.'
+        'Get your wallet address from the dashboard: https://skillz.market/dashboard\n' +
+        '(Look for "Spending Wallet" or use your own wallet address)'
     );
   }
 

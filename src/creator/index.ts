@@ -16,7 +16,7 @@ import 'dotenv/config';
  * });
  *
  * serve({ echo });
- * // Run: SKILLZ_WALLET_KEY=0x... npx tsx index.ts
+ * // Run: SKILLZ_WALLET_ADDRESS=0x... SKILLZ_API_KEY=sk_... npx tsx index.ts
  * ```
  */
 

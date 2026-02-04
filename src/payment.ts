@@ -22,11 +22,15 @@ export function resolveAccount(walletConfig: WalletConfig): PrivateKeyAccount {
 /**
  * Creates a fetch function that automatically handles x402 payments.
  * Uses the official x402 registration pattern with wildcard network support.
+ *
+ * Note: The network parameter is accepted for API consistency but the x402 client
+ * determines the network from the payment request headers (supports all EVM chains).
  */
 export function createPaymentFetch(
   walletConfig: WalletConfig,
-  _network: `${string}:${string}` = DEFAULT_NETWORK
+  network: `${string}:${string}` = DEFAULT_NETWORK
 ): typeof fetch {
+  void network; // Network is determined by x402 payment request headers
   const account = resolveAccount(walletConfig);
 
   const client = new x402Client();
